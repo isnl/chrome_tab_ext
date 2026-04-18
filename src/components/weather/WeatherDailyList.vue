@@ -14,7 +14,7 @@ defineProps<{
       v-for="item in items"
       :key="item.date"
       class="tone-panel flex flex-col gap-3 px-4 py-4 transition duration-200 hover:-translate-y-0.5 sm:flex-row sm:items-center sm:justify-between"
-      style="--tone-bg: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(240,248,253,0.78)); --tone-glow: radial-gradient(circle at top right, rgba(56,189,248,0.12), transparent 40%);"
+      style="--tone-bg: linear-gradient(148deg, rgba(255,255,255,0.88), rgba(248,246,255,0.72)); --tone-glow: radial-gradient(circle at top right, rgba(99,102,241,0.1), transparent 42%);"
     >
       <div class="flex items-center gap-4">
         <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/72">

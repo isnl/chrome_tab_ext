@@ -35,7 +35,7 @@ function toneClass(label: string) {
         v-for="item in items"
         :key="`${item.start.toISOString()}-${item.end.toISOString()}`"
         class="tone-panel p-4 transition duration-200 hover:-translate-y-0.5"
-        style="--tone-bg: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,247,242,0.8)); --tone-glow: radial-gradient(circle at top right, rgba(251,146,60,0.12), transparent 40%);"
+        style="--tone-bg: linear-gradient(148deg, rgba(255,255,255,0.88), rgba(255,248,250,0.76)); --tone-glow: radial-gradient(circle at top right, rgba(236,72,153,0.1), transparent 42%);"
       >
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>

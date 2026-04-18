@@ -14,7 +14,7 @@ defineProps<{
       v-for="item in items"
       :key="item.time"
       class="tone-panel min-w-[114px] shrink-0 p-4"
-      style="--tone-bg: linear-gradient(145deg, rgba(243,249,255,0.9), rgba(232,244,255,0.78)); --tone-glow: radial-gradient(circle at top right, rgba(56,189,248,0.18), transparent 38%);"
+      style="--tone-bg: linear-gradient(148deg, rgba(248,246,255,0.88), rgba(237,233,254,0.72)); --tone-glow: radial-gradient(circle at top right, rgba(99,102,241,0.14), transparent 40%);"
     >
       <div class="flex items-center justify-between gap-3">
         <span class="text-sm font-medium text-slate-500">{{ item.timeLabel }}</span>

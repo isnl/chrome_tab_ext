@@ -18,12 +18,12 @@ function cellClasses(item: CalendarDayViewModel) {
     "group relative flex aspect-[0.88] min-w-0 flex-col rounded-[22px] border px-3 py-3 text-left transition duration-200",
     item.inMonth ? "border-white/80 bg-white/84" : "border-transparent bg-slate-100/55 text-slate-400",
     item.isSelected
-      ? "border-orange-300 bg-orange-500 shadow-[0_20px_40px_-24px_rgba(249,115,22,0.72)] ring-2 ring-orange-200/90 ring-offset-2 ring-offset-white"
+      ? "border-violet-300 bg-violet-500 shadow-[0_20px_40px_-24px_rgba(139,92,246,0.65)] ring-2 ring-violet-200/90 ring-offset-2 ring-offset-white"
       : "",
-    item.isToday && !item.isSelected ? "border-emerald-200 bg-emerald-50/80" : "",
+    item.isToday && !item.isSelected ? "border-indigo-200 bg-indigo-50/80" : "",
     item.isNamedHoliday && !item.isSelected ? "border-rose-200 bg-rose-50/75" : "",
     item.isCompensationWorkday && !item.isSelected ? "border-amber-200 bg-amber-50/75" : "",
-    item.isSelected ? "" : "hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50/70"
+    item.isSelected ? "" : "hover:-translate-y-0.5 hover:border-violet-200 hover:bg-violet-50/70"
   ];
 }
 </script>
@@ -67,14 +67,14 @@ function cellClasses(item: CalendarDayViewModel) {
         <div class="flex items-start justify-between gap-2">
           <span
             class="text-lg font-semibold tracking-tight"
-            :class="item.isSelected ? 'text-orange-50' : item.inMonth ? 'text-slate-900' : 'text-slate-400'"
+            :class="item.isSelected ? 'text-violet-50' : item.inMonth ? 'text-slate-900' : 'text-slate-400'"
           >
             {{ item.date.getDate() }}
           </span>
           <div class="flex flex-wrap justify-end gap-1">
             <span
               v-if="item.isToday"
-              class="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-500/12 px-2 text-[11px] font-semibold text-emerald-700"
+              class="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-indigo-500/12 px-2 text-[11px] font-semibold text-indigo-700"
             >
               今
             </span>
@@ -96,11 +96,11 @@ function cellClasses(item: CalendarDayViewModel) {
         <div class="mt-auto">
           <p
             class="line-clamp-1 text-sm font-medium"
-            :class="item.isSelected ? 'text-orange-50' : item.inMonth ? 'text-slate-700' : 'text-slate-400'"
+            :class="item.isSelected ? 'text-violet-50' : item.inMonth ? 'text-slate-700' : 'text-slate-400'"
           >
             {{ item.subtitle }}
           </p>
-          <p class="mt-1 text-xs" :class="item.isSelected ? 'text-orange-100' : item.inMonth ? 'text-slate-400' : 'text-slate-300'">
+          <p class="mt-1 text-xs" :class="item.isSelected ? 'text-violet-200' : item.inMonth ? 'text-slate-400' : 'text-slate-300'">
             {{ item.inMonth ? item.lunar.shortLabel : `${item.date.getMonth() + 1}/${item.date.getDate()}` }}
           </p>
         </div>

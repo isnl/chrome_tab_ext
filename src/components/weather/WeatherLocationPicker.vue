@@ -76,7 +76,7 @@ watch(
         <button
           v-for="city in quickCities"
           :key="city"
-          class="pill-tag normal-case tracking-normal transition duration-200 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+          class="pill-tag normal-case tracking-normal transition duration-200 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
           type="button"
           @click="emit('quick', city)"
         >
@@ -93,7 +93,7 @@ watch(
           v-for="item in results"
           :key="`${item.latitude}-${item.longitude}`"
           class="tone-panel flex items-center justify-between gap-4 px-4 py-3 text-left transition duration-200 hover:-translate-y-0.5"
-          style="--tone-bg: linear-gradient(145deg, rgba(255,255,255,0.86), rgba(242,248,246,0.76)); --tone-glow: radial-gradient(circle at top right, rgba(45,212,191,0.12), transparent 40%);"
+          style="--tone-bg: linear-gradient(148deg, rgba(255,255,255,0.84), rgba(248,246,255,0.72)); --tone-glow: radial-gradient(circle at top right, rgba(139,92,246,0.1), transparent 42%);"
           type="button"
           @click="emit('select', item)"
         >

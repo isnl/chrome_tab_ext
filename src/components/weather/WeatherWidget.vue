@@ -98,7 +98,7 @@ onMounted(() => {
     <div
       v-if="weatherState.showNotice.value"
       class="tone-panel mt-5 flex flex-col gap-3 px-4 py-4 text-sm leading-6 text-amber-950"
-      style="--tone-bg: linear-gradient(145deg, rgba(255,251,235,0.96), rgba(255,243,216,0.88)); --tone-glow: radial-gradient(circle at top right, rgba(251,191,36,0.18), transparent 40%);"
+      style="--tone-bg: linear-gradient(148deg, rgba(255,251,235,0.94), rgba(254,243,199,0.84)); --tone-glow: radial-gradient(circle at top right, rgba(245,158,11,0.16), transparent 42%);"
     >
       <div>
         已按当前 IP 为你定位到 <span class="font-semibold">{{ weatherState.location.value?.name }}</span>，如果你常驻其他城市，建议改成固定城市。

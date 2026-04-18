@@ -1,8 +1,8 @@
-export const WIDGET_SIZES = ["1x1", "1x2", "2x2", "4x4"] as const;
+export const WIDGET_SIZES = ["1x1", "2x1", "2x2", "4x2", "4x4"] as const;
 
 export type WidgetSize = (typeof WIDGET_SIZES)[number];
 
-export type DashboardWidgetId = "clock" | "weather" | "calendar";
+export type DashboardWidgetId = "clock" | "weather" | "calendar" | "countdown" | "todo";
 
 export interface WidgetSizeMeta {
   cols: number;
@@ -14,6 +14,8 @@ export interface DashboardWidgetState {
   id: DashboardWidgetId;
   size: WidgetSize;
   order: number;
+  col?: number;
+  row?: number;
 }
 
 export type WidgetLayoutItem = DashboardWidgetState;
@@ -21,21 +23,17 @@ export type WidgetLayoutItem = DashboardWidgetState;
 export interface DashboardWidgetDefinition {
   id: DashboardWidgetId;
   title: string;
-  subtitle: string;
   supportedSizes: WidgetSize[];
   defaultSize: WidgetSize;
 }
 
 export type WidgetDefinition = DashboardWidgetDefinition;
 
-export interface WidgetDetailState {
-  id: DashboardWidgetId | null;
-}
-
 export const WIDGET_SIZE_META: Record<WidgetSize, WidgetSizeMeta> = {
   "1x1": { cols: 1, rows: 1, label: "1 x 1" },
-  "1x2": { cols: 1, rows: 2, label: "1 x 2" },
+  "2x1": { cols: 2, rows: 1, label: "2 x 1" },
   "2x2": { cols: 2, rows: 2, label: "2 x 2" },
+  "4x2": { cols: 4, rows: 2, label: "4 x 2" },
   "4x4": { cols: 4, rows: 4, label: "4 x 4" }
 };
 
@@ -47,22 +45,31 @@ export const DASHBOARD_WIDGET_DEFINITIONS: Record<DashboardWidgetId, DashboardWi
   clock: {
     id: "clock",
     title: "时间",
-    subtitle: "一眼看到当前状态",
-    supportedSizes: ["1x1", "1x2", "2x2"],
-    defaultSize: "1x1"
+    supportedSizes: ["1x1", "2x1", "2x2"],
+    defaultSize: "2x2"
   },
   weather: {
     id: "weather",
     title: "天气",
-    subtitle: "从摘要进入完整详情",
-    supportedSizes: ["1x1", "1x2", "2x2"],
-    defaultSize: "1x2"
+    supportedSizes: ["1x1", "2x1", "2x2", "4x2"],
+    defaultSize: "2x2"
   },
   calendar: {
     id: "calendar",
     title: "日历",
-    subtitle: "迷你月历 + 详细展开",
     supportedSizes: ["1x1", "2x2", "4x4"],
+    defaultSize: "4x4"
+  },
+  countdown: {
+    id: "countdown",
+    title: "倒计时",
+    supportedSizes: ["2x1", "2x2", "4x2"],
+    defaultSize: "2x2"
+  },
+  todo: {
+    id: "todo",
+    title: "待办",
+    supportedSizes: ["1x1", "2x1", "2x2", "4x2", "4x4"],
     defaultSize: "2x2"
   }
 };
@@ -82,6 +89,16 @@ export const DEFAULT_DASHBOARD_LAYOUT: DashboardWidgetState[] = [
     id: "calendar",
     size: DASHBOARD_WIDGET_DEFINITIONS.calendar.defaultSize,
     order: 2
+  },
+  {
+    id: "countdown",
+    size: DASHBOARD_WIDGET_DEFINITIONS.countdown.defaultSize,
+    order: 3
+  },
+  {
+    id: "todo",
+    size: DASHBOARD_WIDGET_DEFINITIONS.todo.defaultSize,
+    order: 4
   }
 ];
 

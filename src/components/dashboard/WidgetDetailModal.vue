@@ -59,7 +59,7 @@ onBeforeUnmount(() => {
     <Transition name="widget-modal">
       <div
         v-if="open"
-        class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,0.34)] px-4 py-6 backdrop-blur-xl sm:px-6 sm:py-8"
+        class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(15,10,40,0.32)] px-4 py-6 backdrop-blur-xl sm:px-6 sm:py-8"
         @click.self="emit('close')"
       >
         <section
@@ -68,7 +68,7 @@ onBeforeUnmount(() => {
           :style="{ viewTransitionName: viewName }"
         >
           <div class="surface-card overflow-hidden p-3 sm:p-4">
-            <div class="rounded-[30px] border border-white/85 bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(242,248,245,0.94)_52%,rgba(243,246,251,0.94))] p-5 sm:p-6">
+            <div class="rounded-[24px] border border-white/78 bg-[linear-gradient(180deg,rgba(255,254,252,0.96),rgba(248,246,255,0.92)_52%,rgba(243,246,251,0.92))] p-5 sm:p-6">
               <div class="mb-5 flex flex-col gap-4 border-b border-white/60 pb-5 sm:flex-row sm:items-start sm:justify-between">
                 <div class="min-w-0">
                   <div class="flex flex-wrap gap-2">
@@ -105,7 +105,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .widget-modal-enter-active,
 .widget-modal-leave-active {
-  transition: opacity 240ms ease, transform 240ms ease;
+  transition: opacity 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .widget-modal-enter-from,
@@ -119,6 +120,6 @@ onBeforeUnmount(() => {
 }
 
 .widget-detail-surface {
-  transition: transform 240ms ease;
+  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 </style>

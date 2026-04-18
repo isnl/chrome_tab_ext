@@ -1,15 +1,83 @@
-import { computed, ref, watch } from "vue";
+import { computed, ref, toRaw, watch } from "vue";
 
 import { storageGet, storageSet } from "@/services/storage";
 import {
   DASHBOARD_WIDGET_DEFINITIONS,
   DEFAULT_DASHBOARD_LAYOUT,
+  WIDGET_SIZE_META,
   type DashboardWidgetId,
   type DashboardWidgetState,
   type WidgetSize
 } from "@/types/widget";
 
 const STORAGE_KEY = "dashboard.layout";
+const GRID_COLS = 8;
+
+function cloneLayout(widgets: DashboardWidgetState[]): DashboardWidgetState[] {
+  return toRaw(widgets).map((item) => ({ ...toRaw(item) }));
+}
+
+function buildOccupancy(widgets: DashboardWidgetState[], excludeId?: string): Set<string> {
+  const occupied = new Set<string>();
+  for (const item of widgets) {
+    if (item.id === excludeId) continue;
+    if (item.col == null || item.row == null) continue;
+    const s = WIDGET_SIZE_META[item.size];
+    for (let c = item.col; c < item.col + s.cols; c++) {
+      for (let r = item.row; r < item.row + s.rows; r++) {
+        occupied.add(`${c},${r}`);
+      }
+    }
+  }
+  return occupied;
+}
+
+function canPlace(widgets: DashboardWidgetState[], col: number, row: number, size: WidgetSize, excludeId?: string): boolean {
+  const s = WIDGET_SIZE_META[size];
+  if (col < 0 || row < 0 || col + s.cols > GRID_COLS) return false;
+  const occupied = buildOccupancy(widgets, excludeId);
+  for (let c = col; c < col + s.cols; c++) {
+    for (let r = row; r < row + s.rows; r++) {
+      if (occupied.has(`${c},${r}`)) return false;
+    }
+  }
+  return true;
+}
+
+function autoAssignPositions(widgets: DashboardWidgetState[]): DashboardWidgetState[] {
+  const result: DashboardWidgetState[] = [];
+  const placed: DashboardWidgetState[] = [];
+
+  // Keep widgets that already have valid positions
+  for (const widget of widgets) {
+    if (widget.col != null && widget.row != null) {
+      placed.push({ ...widget });
+      result.push({ ...widget });
+    }
+  }
+
+  // Auto-place remaining widgets
+  const unplaced = widgets.filter((w) => w.col == null || w.row == null);
+  for (const widget of unplaced) {
+    const s = WIDGET_SIZE_META[widget.size];
+    let found = false;
+    for (let r = 0; r < 50 && !found; r++) {
+      for (let c = 0; c <= GRID_COLS - s.cols && !found; c++) {
+        if (canPlace(placed, c, r, widget.size)) {
+          const positioned = { ...widget, col: c, row: r };
+          placed.push(positioned);
+          result.push(positioned);
+          found = true;
+        }
+      }
+    }
+    if (!found) {
+      result.push({ ...widget, col: 0, row: 0 });
+    }
+  }
+
+  return result;
+}
 
 function sanitizeLayout(payload: unknown) {
   if (!Array.isArray(payload)) {
@@ -30,7 +98,9 @@ function sanitizeLayout(payload: unknown) {
       return {
         id: item.id,
         size,
-        order: typeof item.order === "number" ? item.order : index
+        order: typeof item.order === "number" ? item.order : index,
+        col: typeof item.col === "number" ? item.col : undefined,
+        row: typeof item.row === "number" ? item.row : undefined
       } satisfies DashboardWidgetState;
     });
 
@@ -39,7 +109,7 @@ function sanitizeLayout(payload: unknown) {
     order: incoming.length + index
   }));
 
-  return [...incoming, ...fallback].sort((left, right) => left.order - right.order);
+  return autoAssignPositions([...incoming, ...fallback].sort((left, right) => left.order - right.order));
 }
 
 function createDashboardStore() {
@@ -54,10 +124,11 @@ function createDashboardStore() {
 
     hydrationPromise = (async () => {
       const stored = await storageGet<Record<string, unknown>>({
-        [STORAGE_KEY]: DEFAULT_DASHBOARD_LAYOUT
+        [STORAGE_KEY]: null
       });
 
-      widgets.value = sanitizeLayout(stored[STORAGE_KEY]);
+      const raw = stored[STORAGE_KEY];
+      widgets.value = sanitizeLayout(raw);
       isHydrated.value = true;
     })();
 
@@ -65,7 +136,14 @@ function createDashboardStore() {
   }
 
   function setWidgetSize(id: DashboardWidgetId, size: WidgetSize) {
-    widgets.value = widgets.value.map((item) => (item.id === id ? { ...item, size } : item));
+    const updated = widgets.value.map((item) => (item.id === id ? { ...item, size, col: undefined, row: undefined } : item));
+    widgets.value = autoAssignPositions(updated);
+  }
+
+  function moveWidget(id: string, col: number, row: number) {
+    widgets.value = widgets.value.map((item) =>
+      item.id === id ? { ...item, col, row } : item
+    );
   }
 
   function cycleWidgetSize(id: DashboardWidgetId) {
@@ -82,15 +160,24 @@ function createDashboardStore() {
 
   const orderedWidgets = computed(() => [...widgets.value].sort((left, right) => left.order - right.order));
 
+  function reorderWidgets(fromIndex: number, toIndex: number) {
+    const sorted = [...widgets.value].sort((left, right) => left.order - right.order);
+    const [moved] = sorted.splice(fromIndex, 1);
+    if (!moved) return;
+    sorted.splice(toIndex, 0, moved);
+    widgets.value = sorted.map((item, index) => ({ ...item, order: index }));
+  }
+
   watch(
     widgets,
-    async (value) => {
+    (value) => {
       if (!isHydrated.value) {
         return;
       }
 
-      await storageSet({
-        [STORAGE_KEY]: value
+      const plain = cloneLayout(value);
+      storageSet({ [STORAGE_KEY]: plain }).catch((error) => {
+        console.warn("[dashboard] 布局保存失败:", error);
       });
     },
     { deep: true }
@@ -104,7 +191,9 @@ function createDashboardStore() {
     isHydrated,
     initialize,
     setWidgetSize,
-    cycleWidgetSize
+    moveWidget,
+    cycleWidgetSize,
+    reorderWidgets
   };
 }
 

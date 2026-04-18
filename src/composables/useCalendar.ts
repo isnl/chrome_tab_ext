@@ -153,6 +153,12 @@ function createCalendarStore() {
     await ensureYearBundle(activeMonth.value);
   }
 
+  async function goToMonth(year: number, month: number) {
+    activeMonth.value = new Date(year, month, 1);
+    syncSelectedDateWithMonth();
+    await ensureYearBundle(activeMonth.value);
+  }
+
   async function selectDate(date: Date) {
     selectedDate.value = new Date(date);
 
@@ -340,6 +346,7 @@ function createCalendarStore() {
     goToPreviousMonth,
     goToNextMonth,
     goToToday,
+    goToMonth,
     selectDate,
     formatDateKey,
     formatShortDate,
