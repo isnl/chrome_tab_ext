@@ -111,7 +111,8 @@ export function startOfMonth(date: Date) {
 
 export function buildMonthGrid(activeMonth: Date): CalendarGridItem[] {
   const firstDay = startOfMonth(activeMonth);
-  const firstOffset = firstDay.getDay();
+  // Monday-start: convert Sunday(0) to 6, Monday(1) to 0, etc.
+  const firstOffset = (firstDay.getDay() + 6) % 7;
   const gridStart = addDays(firstDay, -firstOffset);
 
   return Array.from({ length: 42 }, (_, index) => {

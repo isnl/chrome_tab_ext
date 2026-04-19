@@ -252,7 +252,7 @@ const ghostStyle = computed(() => {
 
 /* ── drop ghost ── */
 .drag-ghost {
-  border-radius: 26px;
+  border-radius: 18px;
   border: 2px dashed rgba(99, 102, 241, 0.4);
   background: rgba(99, 102, 241, 0.06);
   pointer-events: none;

@@ -2,7 +2,7 @@ export const WIDGET_SIZES = ["1x1", "2x1", "2x2", "4x2", "4x4"] as const;
 
 export type WidgetSize = (typeof WIDGET_SIZES)[number];
 
-export type DashboardWidgetId = "clock" | "weather" | "calendar" | "countdown" | "todo";
+export type DashboardWidgetId = "clock" | "weather" | "calendar" | "countdown" | "todo" | "progress";
 
 export interface WidgetSizeMeta {
   cols: number;
@@ -71,6 +71,12 @@ export const DASHBOARD_WIDGET_DEFINITIONS: Record<DashboardWidgetId, DashboardWi
     title: "待办",
     supportedSizes: ["1x1", "2x1", "2x2", "4x2", "4x4"],
     defaultSize: "2x2"
+  },
+  progress: {
+    id: "progress",
+    title: "进度条",
+    supportedSizes: ["1x1", "2x2"],
+    defaultSize: "2x2"
   }
 };
 
@@ -99,6 +105,11 @@ export const DEFAULT_DASHBOARD_LAYOUT: DashboardWidgetState[] = [
     id: "todo",
     size: DASHBOARD_WIDGET_DEFINITIONS.todo.defaultSize,
     order: 4
+  },
+  {
+    id: "progress",
+    size: DASHBOARD_WIDGET_DEFINITIONS.progress.defaultSize,
+    order: 5
   }
 ];
 

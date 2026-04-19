@@ -10,6 +10,7 @@ import ClockSummaryWidget from "./ClockSummaryWidget.vue";
 import CountdownSettingsPanel from "./CountdownSettingsPanel.vue";
 import CountdownSummaryWidget from "./CountdownSummaryWidget.vue";
 import DashboardGrid from "./DashboardGrid.vue";
+import ProgressSummaryWidget from "./ProgressSummaryWidget.vue";
 import TodoHistoryModal from "./TodoHistoryModal.vue";
 import TodoSettingsPanel from "./TodoSettingsPanel.vue";
 import TodoSummaryWidget from "./TodoSummaryWidget.vue";
@@ -81,6 +82,8 @@ onMounted(() => {
           <CountdownSummaryWidget v-else-if="item.id === 'countdown'" :size="item.size" />
 
           <TodoSummaryWidget v-else-if="item.id === 'todo'" :size="item.size" />
+
+          <ProgressSummaryWidget v-else-if="item.id === 'progress'" :size="item.size" />
         </WidgetShell>
       </template>
     </DashboardGrid>

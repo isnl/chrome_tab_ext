@@ -44,6 +44,11 @@ const themeStyle = computed<WidgetThemeStyle>(() => {
         "--widget-shell-bg": "linear-gradient(160deg, rgba(248,250,255,0.94), rgba(191,219,254,0.76) 52%, rgba(240,248,255,0.76))",
         "--widget-shell-glow": "radial-gradient(circle at top right, rgba(59,130,246,0.18), transparent 42%)"
       };
+    case "progress":
+      return {
+        "--widget-shell-bg": "linear-gradient(160deg, rgba(255,250,245,0.94), rgba(254,215,170,0.72) 50%, rgba(255,237,213,0.76))",
+        "--widget-shell-glow": "radial-gradient(circle at top right, rgba(249,115,22,0.2), transparent 42%)"
+      };
     default:
       return {
         "--widget-shell-bg": "linear-gradient(160deg, rgba(255,248,250,0.94), rgba(252,231,243,0.76) 48%, rgba(248,246,255,0.74))",
@@ -66,7 +71,7 @@ function handleContextMenu(event: MouseEvent) {
   >
     <div class="dashboard-widget__grain"></div>
 
-    <div class="relative flex h-full min-h-0 flex-col" :class="isCompact ? 'p-3.5' : 'p-4'">
+    <div class="relative flex h-full min-h-0 flex-col" :class="size === '1x1' ? 'p-2' : isCompact ? 'p-3.5' : 'p-4'">
       <div class="min-h-0 flex-1">
         <slot />
       </div>

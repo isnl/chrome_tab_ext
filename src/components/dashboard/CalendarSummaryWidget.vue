@@ -17,10 +17,10 @@ const todayCell = computed(() => calendar.monthGrid.value.find((item) => item.is
 const previewDays = computed(() => calendar.monthGrid.value);
 const nextHoliday = computed(() => calendar.upcomingSegments.value.find((s) => s.label !== "周末") ?? null);
 
-// Current week row for 2x2
+// Current week row for 2x2 (Monday-start)
 const currentWeekDays = computed(() => {
   const now = new Date();
-  const dayOfWeek = now.getDay();
+  const dayOfWeek = (now.getDay() + 6) % 7; // Monday=0, Sunday=6
   const weekStart = new Date(now);
   weekStart.setDate(now.getDate() - dayOfWeek);
   return Array.from({ length: 7 }, (_, i) => {
@@ -29,7 +29,7 @@ const currentWeekDays = computed(() => {
     return {
       day: d.getDate(),
       isToday: d.toDateString() === now.toDateString(),
-      isWeekend: i === 0 || i === 6
+      isWeekend: i === 5 || i === 6 // Saturday, Sunday
     };
   });
 });
@@ -57,7 +57,7 @@ function handleMonthSelect(year: number, month: number) {
   void calendar.goToMonth(year, month);
 }
 
-const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
 
 onMounted(() => {
   void calendar.initialize();
@@ -102,12 +102,12 @@ onMounted(() => {
           :key="i"
           class="flex flex-1 flex-col items-center rounded-md py-0.5"
           :class="{
-            'bg-indigo-500 text-white': d.isToday,
             'text-pink-400': d.isWeekend && !d.isToday
           }"
         >
-          <span class="text-[9px]" :class="d.isToday ? 'text-white/70' : 'text-slate-400'">{{ weekdays[i] }}</span>
-          <span class="text-[11px] font-semibold" :class="{ 'text-slate-600': !d.isToday && !d.isWeekend }">{{ d.day }}</span>
+          <span class="text-[9px]" :class="d.isToday ? 'text-teal-600' : 'text-slate-400'">{{ weekdays[i] }}</span>
+          <span class="text-[11px]" :class="d.isToday ? 'font-extrabold text-slate-900' : d.isWeekend ? 'font-semibold' : 'font-semibold text-slate-600'">{{ d.day }}</span>
+          <span v-if="d.isToday" class="mt-0.5 h-1 w-1 rounded-full bg-teal-500"></span>
         </div>
       </div>
 
@@ -158,7 +158,7 @@ onMounted(() => {
         <span
           v-for="(day, i) in weekdays"
           :key="day"
-          :class="['cal-wd', { 'cal-wd--we': i === 0 || i === 6 }]"
+          :class="['cal-wd', { 'cal-wd--we': i === 5 || i === 6 }]"
         >{{ day }}</span>
       </div>
 
@@ -171,16 +171,17 @@ onMounted(() => {
             'cal-cell--today': item.isToday,
             'cal-cell--hol': item.isNamedHoliday && !item.isToday,
             'cal-cell--comp': item.isCompensationWorkday && !item.isToday,
-            'cal-cell--out': !item.inMonth,
+            'cal-cell--out': !item.inMonth && !item.isNamedHoliday,
             'cal-cell--we': item.inMonth && !item.isToday && !item.isNamedHoliday && (item.date.getDay() === 0 || item.date.getDay() === 6)
           }]"
           @mouseenter="showTooltip(item, $event)"
           @mouseleave="hideTooltip"
         >
           <span class="cal-num">{{ item.date.getDate() }}</span>
-          <span v-if="item.inMonth && item.isNamedHoliday && !item.isToday" class="cal-badge cal-badge--r">休</span>
-          <span v-else-if="item.inMonth && item.isCompensationWorkday && !item.isToday" class="cal-badge cal-badge--w">班</span>
-          <span v-else-if="item.inMonth && !item.isToday" class="cal-sub">{{ item.lunar.shortLabel }}</span>
+          <span v-if="item.isToday" class="cal-dot"></span>
+          <span v-else-if="item.isNamedHoliday" class="cal-badge cal-badge--r">休</span>
+          <span v-else-if="item.isCompensationWorkday && item.inMonth" class="cal-badge cal-badge--w">班</span>
+          <span v-else-if="item.inMonth" class="cal-sub">{{ item.lunar.shortLabel }}</span>
         </div>
       </div>
 
@@ -300,7 +301,7 @@ onMounted(() => {
   cursor: pointer;
   transition: background 120ms ease;
 }
-.cal-cell:not(.cal-cell--out):hover {
+.cal-cell:not(.cal-cell--out):not(.cal-cell--today):hover {
   background: rgba(99, 102, 241, 0.04);
 }
 .cal-num {
@@ -317,20 +318,28 @@ onMounted(() => {
 }
 
 /* today */
-.cal-cell--today {
-  background: #6366f1;
-  border-radius: 10px;
-}
 .cal-cell--today .cal-num {
-  color: #fff;
-  font-weight: 700;
+  color: #1e293b;
+  font-weight: 800;
+}
+
+.cal-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #0d9488;
+  margin-top: 2px;
 }
 
 /* named holiday */
+.cal-cell--hol {
+  background: rgba(225, 29, 72, 0.1);
+  border-radius: 8px;
+}
 .cal-cell--hol .cal-num { color: #e11d48; }
 
 /* compensation workday */
-.cal-cell--comp .cal-num { color: #d97706; }
+.cal-cell--comp .cal-num { color: #475569; }
 
 /* weekend */
 .cal-cell--we .cal-num { color: #f0a0b8; }
@@ -347,6 +356,6 @@ onMounted(() => {
   margin-top: 1px;
 }
 .cal-badge--r { color: #e11d48; }
-.cal-badge--w { color: #d97706; }
+.cal-badge--w { color: #475569; }
 
 </style>

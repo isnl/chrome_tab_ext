@@ -104,6 +104,15 @@
     filter: blur(16px);
   }
 
+  /* wallpaper mode: suppress aurora background */
+  body.wallpaper-active {
+    background: transparent;
+  }
+  body.wallpaper-active::before,
+  body.wallpaper-active::after {
+    display: none;
+  }
+
   ::selection {
     background-color: rgba(124, 58, 237, 0.16);
   }
@@ -205,7 +214,7 @@
   .surface-card {
     position: relative;
     overflow: hidden;
-    border-radius: 28px;
+    border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.68);
     background: linear-gradient(
       152deg,
@@ -246,7 +255,7 @@
   /* ── inner panel: nested sections ── */
   .inner-panel {
     position: relative;
-    border-radius: 22px;
+    border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.72);
     background: linear-gradient(
       152deg,
@@ -275,7 +284,7 @@
   .tone-panel {
     position: relative;
     overflow: hidden;
-    border-radius: 22px;
+    border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.72);
     background: var(
       --tone-bg,

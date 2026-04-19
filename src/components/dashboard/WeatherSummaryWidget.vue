@@ -46,14 +46,14 @@ onMounted(() => {
     <div class="relative z-10 flex h-full flex-col">
       <!-- 1x1: mini temp + icon + label -->
       <template v-if="size === '1x1'">
-        <div class="flex h-full flex-col items-center justify-center text-center">
+        <div class="flex h-full flex-col items-center justify-center gap-0.5 text-center">
           <span :class="currentMeta.accent">
-            <WeatherGlyph :name="currentMeta.icon" size-class="h-5 w-5" />
+            <WeatherGlyph :name="currentMeta.icon" size-class="h-4 w-4" />
           </span>
-          <p class="widget-value mt-1 text-[1.4rem] leading-none">
+          <p class="widget-value text-[1.25rem] leading-none">
             {{ weatherState.weather.value.current.temperature }}°
           </p>
-          <p class="mt-0.5 truncate text-[10px] text-slate-500">{{ currentMeta.label }}</p>
+          <p class="max-w-full truncate text-[9px] font-medium text-slate-600 drop-shadow-[0_0_3px_rgba(255,255,255,1)]">{{ currentMeta.label }}</p>
         </div>
       </template>
 
