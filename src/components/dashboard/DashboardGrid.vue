@@ -5,7 +5,7 @@ import { WIDGET_SIZE_META, type WidgetLayoutItem, type WidgetSize } from "@/type
 
 import { getWidgetSpanClasses } from "./widgetSizing";
 
-const GRID_COLS = 8;
+const GRID_COLS = 12;
 
 const props = defineProps<{
   items: WidgetLayoutItem[];
@@ -92,18 +92,32 @@ function handleGridDragOver(event: DragEvent) {
   if (!draggingId.value || !gridEl.value) return;
   event.preventDefault();
 
-  const rect = gridEl.value.getBoundingClientRect();
-  const cellW = rect.width / GRID_COLS;
-  const cellH = cellW; // square cells
-
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-
-  const col = Math.max(0, Math.min(GRID_COLS - 1, Math.floor(x / cellW)));
-  const row = Math.max(0, Math.floor(y / cellH));
-
   const item = props.items.find((i) => i.id === draggingId.value);
   if (!item) return;
+
+  const s = getSize(item.size);
+  const rect = gridEl.value.getBoundingClientRect();
+  const style = getComputedStyle(gridEl.value);
+  const gap = parseFloat(style.gap) || 0;
+
+  // Read actual cell size from computed grid tracks
+  const colTracks = style.gridTemplateColumns.split(/\s+/);
+  const rowTracks = style.gridTemplateRows.split(/\s+/);
+  const colUnit = parseFloat(colTracks[0]) || 92;
+  const rowUnit = parseFloat(rowTracks[0]) || colUnit;
+
+  // Account for justify-content: center offset
+  const contentWidth = GRID_COLS * colUnit + (GRID_COLS - 1) * gap;
+  const offsetX = (rect.width - contentWidth) / 2;
+
+  const colPitch = colUnit + gap;
+  const rowPitch = rowUnit + gap;
+  const x = event.clientX - rect.left - offsetX;
+  const y = event.clientY - rect.top;
+
+  // Clamp so the widget (including its full span) stays within grid bounds
+  const col = Math.max(0, Math.min(GRID_COLS - s.cols, Math.floor(x / colPitch)));
+  const row = Math.max(0, Math.floor(y / rowPitch));
 
   dragGhostCol.value = col;
   dragGhostRow.value = row;
@@ -182,31 +196,37 @@ const ghostStyle = computed(() => {
 
 <style scoped>
 .dashboard-grid {
-  --dashboard-unit: 92px;
+  --dashboard-unit: 56px;
   display: grid;
-  grid-template-columns: repeat(8, var(--dashboard-unit));
+  grid-template-columns: repeat(12, var(--dashboard-unit));
   grid-auto-rows: var(--dashboard-unit);
   justify-content: center;
   align-content: start;
-  gap: 1rem;
+  gap: 0.75rem;
   position: relative;
 }
 
 @media (min-width: 720px) {
   .dashboard-grid {
-    --dashboard-unit: 97px;
+    --dashboard-unit: 60px;
   }
 }
 
 @media (min-width: 1180px) {
   .dashboard-grid {
-    --dashboard-unit: 105px;
+    --dashboard-unit: 70px;
   }
 }
 
 @media (min-width: 1480px) {
   .dashboard-grid {
-    --dashboard-unit: 110px;
+    --dashboard-unit: 80px;
+  }
+}
+
+@media (min-width: 1700px) {
+  .dashboard-grid {
+    --dashboard-unit: 90px;
   }
 }
 
