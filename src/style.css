@@ -214,7 +214,7 @@
   .surface-card {
     position: relative;
     overflow: hidden;
-    border-radius: 20px;
+    border-radius: var(--surface-radius, 20px);
     border: 1px solid rgba(255, 255, 255, 0.68);
     background: linear-gradient(
       152deg,

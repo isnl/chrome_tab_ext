@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref } from "vue";
+import { ref, nextTick } from "vue";
 
 import { useTodo } from "@/composables/useTodo";
 import type { WidgetSize } from "@/types/widget";
@@ -11,8 +11,6 @@ defineProps<{
 const todo = useTodo();
 const newText = ref("");
 const showCompleted = ref(false);
-const isAdding = ref(false);
-const addInput = ref<HTMLInputElement | null>(null);
 const editingId = ref<string | null>(null);
 const editText = ref("");
 const editInput = ref<HTMLInputElement | null>(null);
@@ -22,13 +20,6 @@ function handleAddBlur() {
     todo.addTodo(newText.value);
     newText.value = "";
   }
-  isAdding.value = false;
-}
-
-async function startAdding() {
-  isAdding.value = true;
-  await nextTick();
-  addInput.value?.focus();
 }
 
 async function startEditing(id: string, text: string) {
@@ -111,27 +102,19 @@ function resetDrag() {
     <template v-else-if="size === '2x2'">
       <div class="flex items-center justify-between">
         <p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">待办</p>
-        <button
-          class="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-500 text-white transition hover:bg-indigo-600"
-          type="button"
-          @click="startAdding"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
       </div>
       <div class="relative mt-1.5 flex-1 overflow-hidden">
         <div class="todo-blur-wrap h-full" :class="{ 'todo-blur-wrap--blurred': todo.isBlurred.value }" @click="todo.isBlurred.value && todo.revealPrivacy()">
-          <div v-if="isAdding" class="flex items-center gap-2 rounded-lg bg-white/50 px-2 py-1 mb-1">
-            <input
-              ref="addInput"
-              v-model="newText"
-              class="flex-1 bg-transparent text-[11px] text-slate-700 outline-none placeholder:text-slate-300"
-              placeholder="输入待办..."
-              @blur="handleAddBlur"
-              @keydown.enter="handleAddBlur"
-            />
-          </div>
-          <div v-if="todo.todayActive.value.length" class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-2 rounded-lg px-2 py-1">
+              <input
+                v-model="newText"
+                class="flex-1 bg-transparent text-[11px] text-slate-500 outline-none placeholder:text-slate-400"
+                placeholder="+ 新建待办..."
+                @blur="handleAddBlur"
+                @keydown.enter="($event.target as HTMLInputElement).blur()"
+              />
+            </div>
             <div
               v-for="item in todo.todayActive.value.slice(0, 4)"
               :key="item.id"
@@ -154,7 +137,6 @@ function resetDrag() {
               </span>
             </div>
           </div>
-          <p v-else-if="!isAdding" class="mt-4 text-center text-xs text-slate-400">暂无待办</p>
         </div>
       </div>
     </template>
@@ -163,28 +145,18 @@ function resetDrag() {
     <template v-else-if="size === '4x2'">
       <div class="flex items-center justify-between">
         <p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">待办</p>
-        <div class="flex items-center gap-2">
-          <span class="text-[10px] text-slate-400">{{ todo.todayActive.value.length }} 项待办</span>
-          <button
-            class="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-500 text-white transition hover:bg-indigo-600"
-            type="button"
-            @click="startAdding"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        </div>
+        <span class="text-[10px] text-slate-400">{{ todo.todayActive.value.length }} 项待办</span>
       </div>
       <div class="relative mt-2 flex-1 overflow-hidden">
         <div class="todo-blur-wrap flex h-full gap-3" :class="{ 'todo-blur-wrap--blurred': todo.isBlurred.value }" @click="todo.isBlurred.value && todo.revealPrivacy()">
           <div class="flex flex-1 flex-col gap-1 overflow-y-auto">
-            <div v-if="isAdding" class="flex items-center gap-2 rounded-lg bg-white/50 px-2.5 py-1.5">
+            <div class="flex items-center gap-2 rounded-lg px-2.5 py-1.5">
               <input
-                ref="addInput"
                 v-model="newText"
-                class="flex-1 bg-transparent text-[11px] text-slate-700 outline-none placeholder:text-slate-300"
-                placeholder="输入待办内容..."
+                class="flex-1 bg-transparent text-[11px] text-slate-500 outline-none placeholder:text-slate-400"
+                placeholder="+ 新建待办..."
                 @blur="handleAddBlur"
-                @keydown.enter="handleAddBlur"
+                @keydown.enter="($event.target as HTMLInputElement).blur()"
               />
             </div>
             <div
@@ -224,7 +196,6 @@ function resetDrag() {
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
-            <p v-if="!todo.todayActive.value.length" class="mt-4 text-center text-xs text-slate-400">暂无待办</p>
           </div>
 
           <div v-if="todo.todayCompleted.value.length" class="w-[140px] flex-shrink-0 overflow-y-auto">
@@ -253,31 +224,21 @@ function resetDrag() {
     <template v-else>
       <div class="flex items-center justify-between">
         <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">今日待办</p>
-        <div class="flex items-center gap-2">
-          <span class="text-[10px] text-slate-400">{{ todo.todayActive.value.length }} 项进行中 · {{ todo.todayCompleted.value.length }} 已完成</span>
-          <button
-            class="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500 text-white transition hover:bg-indigo-600"
-            type="button"
-            @click="startAdding"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        </div>
+        <span class="text-[10px] text-slate-400">{{ todo.todayActive.value.length }} 项进行中 · {{ todo.todayCompleted.value.length }} 已完成</span>
       </div>
 
       <div class="relative mt-2 flex-1 overflow-hidden">
         <div class="todo-blur-wrap flex h-full flex-col gap-2 overflow-y-auto" :class="{ 'todo-blur-wrap--blurred': todo.isBlurred.value }" @click="todo.isBlurred.value && todo.revealPrivacy()">
-          <div v-if="isAdding" class="flex items-center gap-2 rounded-[10px] bg-white/50 px-2.5 py-1.5">
-            <input
-              ref="addInput"
-              v-model="newText"
-              class="flex-1 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-300"
-              placeholder="输入待办内容..."
-              @blur="handleAddBlur"
-              @keydown.enter="handleAddBlur"
-            />
-          </div>
           <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-2 rounded-[10px] px-2.5 py-1.5">
+              <input
+                v-model="newText"
+                class="flex-1 bg-transparent text-xs text-slate-500 outline-none placeholder:text-slate-400"
+                placeholder="+ 新建待办..."
+                @blur="handleAddBlur"
+                @keydown.enter="($event.target as HTMLInputElement).blur()"
+              />
+            </div>
             <div
               v-for="(item, index) in todo.todayActive.value"
               :key="item.id"
@@ -315,7 +276,6 @@ function resetDrag() {
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
-            <p v-if="!todo.todayActive.value.length" class="py-4 text-center text-xs text-slate-400">暂无待办，添加一个吧</p>
           </div>
 
           <div v-if="todo.todayCompleted.value.length">

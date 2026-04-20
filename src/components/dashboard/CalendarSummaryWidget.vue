@@ -178,7 +178,7 @@ onMounted(() => {
           @mouseleave="hideTooltip"
         >
           <span class="cal-num">{{ item.date.getDate() }}</span>
-          <span v-if="item.isToday" class="cal-dot"></span>
+          <span v-if="item.isToday" class="cal-today-label">今</span>
           <span v-else-if="item.isNamedHoliday" class="cal-badge cal-badge--r">休</span>
           <span v-else-if="item.isCompensationWorkday && item.inMonth" class="cal-badge cal-badge--w">班</span>
           <span v-else-if="item.inMonth" class="cal-sub">{{ item.lunar.shortLabel }}</span>
@@ -323,12 +323,12 @@ onMounted(() => {
   font-weight: 800;
 }
 
-.cal-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #0d9488;
-  margin-top: 2px;
+.cal-today-label {
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 1;
+  color: #0d9488;
+  margin-top: 1px;
 }
 
 /* named holiday */

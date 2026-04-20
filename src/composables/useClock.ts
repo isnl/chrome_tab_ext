@@ -47,7 +47,15 @@ function createClockStore() {
 
   const seconds = computed(() => String(now.value.getSeconds()).padStart(2, "0"));
 
-  const secondsLabel = computed(() => seconds.value);
+  const periodLabel = computed(() => {
+    const h = now.value.getHours();
+    if (h < 5) return "凌晨";
+    if (h < 12) return "上午";
+    if (h < 18) return "下午";
+    return "晚上";
+  });
+
+  const modeLabel = computed(() => (hour12.value ? `${periodLabel.value} · 12H` : "24H"));
 
   const greetingText = computed(() => {
     const h = now.value.getHours();
@@ -74,7 +82,8 @@ function createClockStore() {
     hours,
     minutes,
     seconds,
-    secondsLabel,
+    periodLabel,
+    modeLabel,
     greetingText
   };
 }

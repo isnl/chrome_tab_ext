@@ -74,7 +74,7 @@ function cellClasses(item: CalendarDayViewModel) {
             >
               {{ item.date.getDate() }}
             </span>
-            <span v-if="item.isToday && !item.isSelected" class="h-2 w-2 rounded-full bg-teal-500"></span>
+            <span v-if="item.isToday && !item.isSelected" class="text-[10px] font-bold text-emerald-500">今</span>
           </div>
           <div class="flex flex-wrap justify-end gap-1">
             <span

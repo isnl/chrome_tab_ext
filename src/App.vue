@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import DashboardBoard from "@/components/dashboard/DashboardBoard.vue";
 import SearchBar from "@/components/search/StickySearchBar.vue";
@@ -7,6 +7,31 @@ import WallpaperPullCord from "@/components/wallpaper/WallpaperPullCord.vue";
 import { useWallpaper } from "@/composables/useWallpaper";
 
 const wallpaper = useWallpaper();
+
+// Hide-on-scroll-down, show-on-scroll-up
+const headerHidden = ref(false);
+let lastScrollY = 0;
+const SCROLL_THRESHOLD = 10;
+
+function handleScroll() {
+  const currentY = window.scrollY;
+  if (currentY < SCROLL_THRESHOLD) {
+    headerHidden.value = false;
+  } else if (currentY - lastScrollY > SCROLL_THRESHOLD) {
+    headerHidden.value = true;
+  } else if (lastScrollY - currentY > SCROLL_THRESHOLD) {
+    headerHidden.value = false;
+  }
+  lastScrollY = currentY;
+}
+
+onMounted(() => {
+  window.addEventListener("scroll", handleScroll, { passive: true });
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", handleScroll);
+});
 
 // Two-layer crossfade
 const layerA = ref<string | null>(null);
@@ -74,7 +99,10 @@ function handlePull() {
 
   <div class="page-shell min-h-screen">
     <div class="mx-auto flex min-h-screen w-full max-w-[1540px] flex-col px-4 pb-10 pt-5 sm:px-6 lg:px-8">
-      <header>
+      <header
+        class="sticky top-0 z-50 transition-transform duration-300"
+        :class="{ '-translate-y-full': headerHidden }"
+      >
         <SearchBar />
       </header>
 
