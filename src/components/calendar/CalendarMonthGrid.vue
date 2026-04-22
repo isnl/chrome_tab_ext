@@ -20,7 +20,7 @@ function cellClasses(item: CalendarDayViewModel) {
     item.isSelected
       ? "border-violet-300 bg-violet-500 shadow-[0_20px_40px_-24px_rgba(139,92,246,0.65)] ring-2 ring-violet-200/90 ring-offset-2 ring-offset-white"
       : "",
-    item.isToday && !item.isSelected ? "" : "",
+    item.isToday && !item.isSelected ? "border-emerald-300 bg-emerald-50/80 shadow-[0_2px_8px_-2px_rgba(16,185,129,0.18)]" : "",
     item.isNamedHoliday && !item.isSelected ? "border-rose-300 bg-rose-100/90 shadow-[0_2px_8px_-2px_rgba(225,29,72,0.18)]" : "",
     item.isCompensationWorkday && !item.isSelected ? "" : "",
     item.isSelected ? "" : item.isToday ? "hover:-translate-y-0.5" : "hover:-translate-y-0.5 hover:border-violet-200 hover:bg-violet-50/70"
@@ -69,12 +69,11 @@ function cellClasses(item: CalendarDayViewModel) {
             <span
               class="text-lg tracking-tight"
               :class="[
-                item.isSelected ? 'text-violet-50 font-semibold' : item.isToday ? 'text-slate-900 font-extrabold' : item.inMonth || item.isNamedHoliday ? 'text-slate-900 font-semibold' : 'text-slate-400 font-semibold'
+                item.isSelected ? 'text-violet-50 font-semibold' : item.isToday ? 'text-emerald-600 font-extrabold' : item.inMonth || item.isNamedHoliday ? 'text-slate-900 font-semibold' : 'text-slate-400 font-semibold'
               ]"
             >
               {{ item.date.getDate() }}
             </span>
-            <span v-if="item.isToday && !item.isSelected" class="text-[10px] font-bold text-emerald-500">今</span>
           </div>
           <div class="flex flex-wrap justify-end gap-1">
             <span
@@ -95,11 +94,11 @@ function cellClasses(item: CalendarDayViewModel) {
         <div class="mt-auto">
           <p
             class="line-clamp-1 text-sm font-medium"
-            :class="item.isSelected ? 'text-violet-50' : item.inMonth || item.isNamedHoliday ? 'text-slate-700' : 'text-slate-400'"
+            :class="item.isSelected ? 'text-violet-50' : item.isToday ? 'text-emerald-700' : item.inMonth || item.isNamedHoliday ? 'text-slate-700' : 'text-slate-400'"
           >
             {{ item.subtitle }}
           </p>
-          <p class="mt-1 text-xs" :class="item.isSelected ? 'text-violet-200' : item.inMonth ? 'text-slate-400' : 'text-slate-300'">
+          <p class="mt-1 text-xs" :class="item.isSelected ? 'text-violet-200' : item.isToday ? 'text-emerald-600' : item.inMonth ? 'text-slate-400' : 'text-slate-300'">
             {{ item.inMonth ? item.lunar.shortLabel : `${item.date.getMonth() + 1}/${item.date.getDate()}` }}
           </p>
         </div>

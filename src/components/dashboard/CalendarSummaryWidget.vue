@@ -146,7 +146,7 @@ onMounted(() => {
         <div class="flex items-center gap-1.5">
           <span class="cal-lunar-tag">{{ calendar.selectedLunar.value.shortLabel }}</span>
           <button
-            class="cal-nav-btn text-[9px] font-semibold"
+            class="cal-today-btn text-[9px] font-semibold"
             type="button"
             @click="calendar.goToToday()"
           >今</button>
@@ -178,8 +178,7 @@ onMounted(() => {
           @mouseleave="hideTooltip"
         >
           <span class="cal-num">{{ item.date.getDate() }}</span>
-          <span v-if="item.isToday" class="cal-today-label">今</span>
-          <span v-else-if="item.isNamedHoliday" class="cal-badge cal-badge--r">休</span>
+          <span v-if="item.isNamedHoliday" class="cal-badge cal-badge--r">休</span>
           <span v-else-if="item.isCompensationWorkday && item.inMonth" class="cal-badge cal-badge--w">班</span>
           <span v-else-if="item.inMonth" class="cal-sub">{{ item.lunar.shortLabel }}</span>
         </div>
@@ -239,6 +238,23 @@ onMounted(() => {
 .cal-nav-btn:hover {
   background: rgba(99, 102, 241, 0.08);
   color: #4338ca;
+}
+.cal-today-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #059669;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+.cal-today-btn:hover {
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
 }
 .cal-month {
   font-size: 1.35rem;
@@ -318,17 +334,16 @@ onMounted(() => {
 }
 
 /* today */
+.cal-cell--today {
+  background: rgba(16, 185, 129, 0.12);
+  border-radius: 8px;
+}
 .cal-cell--today .cal-num {
-  color: #1e293b;
+  color: #059669;
   font-weight: 800;
 }
-
-.cal-today-label {
-  font-size: 7px;
-  font-weight: 700;
-  line-height: 1;
-  color: #0d9488;
-  margin-top: 1px;
+.cal-cell--today .cal-sub {
+  color: #059669;
 }
 
 /* named holiday */

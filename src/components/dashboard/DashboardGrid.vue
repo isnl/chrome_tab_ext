@@ -76,6 +76,7 @@ const dragGhostCol = ref(-1);
 const dragGhostRow = ref(-1);
 const dragValid = ref(false);
 const gridEl = ref<HTMLElement | null>(null);
+let dragRafId = 0;
 
 function handleDragStart(event: DragEvent, item: WidgetLayoutItem) {
   draggingId.value = item.id;
@@ -92,36 +93,59 @@ function handleGridDragOver(event: DragEvent) {
   if (!draggingId.value || !gridEl.value) return;
   event.preventDefault();
 
-  const item = props.items.find((i) => i.id === draggingId.value);
-  if (!item) return;
+  const clientX = event.clientX;
+  const clientY = event.clientY;
 
-  const s = getSize(item.size);
-  const rect = gridEl.value.getBoundingClientRect();
-  const style = getComputedStyle(gridEl.value);
-  const gap = parseFloat(style.gap) || 0;
+  if (dragRafId) return; // already scheduled
+  dragRafId = requestAnimationFrame(() => {
+    dragRafId = 0;
+    if (!draggingId.value || !gridEl.value) return;
 
-  // Read actual cell size from computed grid tracks
-  const colTracks = style.gridTemplateColumns.split(/\s+/);
-  const rowTracks = style.gridTemplateRows.split(/\s+/);
-  const colUnit = parseFloat(colTracks[0]) || 92;
-  const rowUnit = parseFloat(rowTracks[0]) || colUnit;
+    const item = props.items.find((i) => i.id === draggingId.value);
+    if (!item) return;
 
-  // Account for justify-content: center offset
-  const contentWidth = GRID_COLS * colUnit + (GRID_COLS - 1) * gap;
-  const offsetX = (rect.width - contentWidth) / 2;
+    const s = getSize(item.size);
+    const rect = gridEl.value.getBoundingClientRect();
+    const style = getComputedStyle(gridEl.value);
+    const gap = parseFloat(style.gap) || 0;
 
-  const colPitch = colUnit + gap;
-  const rowPitch = rowUnit + gap;
-  const x = event.clientX - rect.left - offsetX;
-  const y = event.clientY - rect.top;
+    // Read actual cell size from computed grid tracks
+    const colTracks = style.gridTemplateColumns.split(/\s+/);
+    const rowTracks = style.gridTemplateRows.split(/\s+/);
+    const colUnit = parseFloat(colTracks[0]) || 92;
+    const rowUnit = parseFloat(rowTracks[0]) || colUnit;
 
-  // Clamp so the widget (including its full span) stays within grid bounds
-  const col = Math.max(0, Math.min(GRID_COLS - s.cols, Math.floor(x / colPitch)));
-  const row = Math.max(0, Math.floor(y / rowPitch));
+    // Account for justify-content: center offset
+    const contentWidth = GRID_COLS * colUnit + (GRID_COLS - 1) * gap;
+    const offsetX = (rect.width - contentWidth) / 2;
 
-  dragGhostCol.value = col;
-  dragGhostRow.value = row;
-  dragValid.value = canPlace(col, row, item.size, item.id);
+    const colPitch = colUnit + gap;
+    const rowPitch = rowUnit + gap;
+    const x = clientX - rect.left - offsetX;
+    const y = clientY - rect.top;
+
+    // Clamp so the widget (including its full span) stays within grid bounds
+    const col = Math.max(0, Math.min(GRID_COLS - s.cols, Math.floor(x / colPitch)));
+    const row = Math.max(0, Math.floor(y / rowPitch));
+
+    // Skip if cursor is still over the dragged item's original position
+    const origCol = item.col ?? 0;
+    const origRow = item.row ?? 0;
+    if (
+      col >= origCol && col < origCol + s.cols &&
+      row >= origRow && row < origRow + s.rows &&
+      dragGhostCol.value >= 0
+    ) {
+      return;
+    }
+
+    // Only update if position actually changed to prevent flicker
+    if (col !== dragGhostCol.value || row !== dragGhostRow.value) {
+      dragGhostCol.value = col;
+      dragGhostRow.value = row;
+      dragValid.value = canPlace(col, row, item.size, item.id);
+    }
+  });
 }
 
 function handleGridDrop(event: DragEvent) {
@@ -139,6 +163,10 @@ function handleDragEnd() {
 }
 
 function resetDrag() {
+  if (dragRafId) {
+    cancelAnimationFrame(dragRafId);
+    dragRafId = 0;
+  }
   draggingId.value = null;
   dragGhostCol.value = -1;
   dragGhostRow.value = -1;
