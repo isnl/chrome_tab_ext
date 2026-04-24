@@ -11,6 +11,8 @@ import CountdownSettingsPanel from "./CountdownSettingsPanel.vue";
 import CountdownSummaryWidget from "./CountdownSummaryWidget.vue";
 import DashboardGrid from "./DashboardGrid.vue";
 import ProgressSummaryWidget from "./ProgressSummaryWidget.vue";
+import SitesSettingsPanel from "./SitesSettingsPanel.vue";
+import SitesSummaryWidget from "./SitesSummaryWidget.vue";
 import TodoHistoryModal from "./TodoHistoryModal.vue";
 import TodoSettingsPanel from "./TodoSettingsPanel.vue";
 import TodoSummaryWidget from "./TodoSummaryWidget.vue";
@@ -84,6 +86,12 @@ onMounted(() => {
           <TodoSummaryWidget v-else-if="item.id === 'todo'" :size="item.size" />
 
           <ProgressSummaryWidget v-else-if="item.id === 'progress'" :size="item.size" />
+
+          <SitesSummaryWidget
+            v-else-if="item.id === 'sites'"
+            :size="item.size"
+            @manage="settingsPanel = 'sites'"
+          />
         </WidgetShell>
       </template>
     </DashboardGrid>
@@ -121,6 +129,11 @@ onMounted(() => {
 
   <TodoSettingsPanel
     :open="settingsPanel === 'todo'"
+    @close="settingsPanel = null"
+  />
+
+  <SitesSettingsPanel
+    :open="settingsPanel === 'sites'"
     @close="settingsPanel = null"
   />
 

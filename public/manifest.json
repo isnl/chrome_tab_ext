@@ -4,6 +4,7 @@
   "description": "A fresh Chrome new tab with sticky Google search, weather, and a detailed Chinese calendar.",
   "version": "0.2.0",
   "permissions": ["storage"],
+  "optional_permissions": ["history", "favicon"],
   "host_permissions": [
     "https://api.ip.sb/*",
     "https://freeipapi.com/*",

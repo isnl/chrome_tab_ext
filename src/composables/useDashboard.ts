@@ -11,7 +11,7 @@ import {
 } from "@/types/widget";
 
 const STORAGE_KEY = "dashboard.layout";
-const GRID_COLS = 8;
+const GRID_COLS = 12;
 
 function cloneLayout(widgets: DashboardWidgetState[]): DashboardWidgetState[] {
   return toRaw(widgets).map((item) => ({ ...toRaw(item) }));

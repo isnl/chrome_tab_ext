@@ -21,7 +21,7 @@ const emit = defineEmits<{
 }>();
 
 const hasSettings = computed(() =>
-  props.widgetId === "weather" || props.widgetId === "clock" || props.widgetId === "countdown" || props.widgetId === "todo"
+  props.widgetId === "weather" || props.widgetId === "clock" || props.widgetId === "countdown" || props.widgetId === "todo" || props.widgetId === "sites"
 );
 
 const hasHistory = computed(() => props.widgetId === "todo");
@@ -32,6 +32,7 @@ const settingsLabel = computed(() => {
     case "clock": return "时间格式";
     case "countdown": return "管理倒计时";
     case "todo": return "隐私设置";
+    case "sites": return "添加网站";
     default: return "";
   }
 });

@@ -55,6 +55,12 @@ const themeStyle = computed<WidgetThemeStyle>(() => {
         "--widget-shell-bg": "linear-gradient(160deg, rgba(255,250,245,0.94), rgba(254,215,170,0.72) 50%, rgba(255,237,213,0.76))",
         "--widget-shell-glow": "radial-gradient(circle at top right, rgba(249,115,22,0.2), transparent 42%)"
       };
+    case "sites":
+      return {
+        "--surface-radius": "20px",
+        "--widget-shell-bg": "linear-gradient(160deg, rgba(247,250,255,0.94), rgba(219,234,254,0.76) 46%, rgba(224,242,254,0.76))",
+        "--widget-shell-glow": "radial-gradient(circle at top right, rgba(14,165,233,0.2), transparent 42%)"
+      };
     default:
       return {
         "--surface-radius": "20px",
