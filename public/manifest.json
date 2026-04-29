@@ -1,10 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "Fresh New Tab",
-  "description": "A fresh Chrome new tab with sticky Google search, weather, and a detailed Chinese calendar.",
+  "name": "晴窗新标签",
+  "short_name": "晴窗",
+  "description": "一个清爽的新标签页，集合搜索、天气、日历和常用网站。",
   "version": "0.2.0",
   "permissions": ["storage"],
   "optional_permissions": ["history", "favicon"],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "host_permissions": [
     "https://api.ip.sb/*",
     "https://freeipapi.com/*",

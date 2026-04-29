@@ -1,4 +1,4 @@
-# Fresh New Tab
+# 晴窗新标签
 
 基于 `Vue 3 + <script setup lang="ts"> + TailwindCSS + Vite` 的 Chrome 新标签页扩展。
 
