@@ -91,8 +91,9 @@ function sanitizeLayout(payload: unknown) {
     })
     .map((item, index) => {
       const definition = DASHBOARD_WIDGET_DEFINITIONS[item.id];
-      const size = definition.supportedSizes.includes(item.size as WidgetSize)
-        ? (item.size as WidgetSize)
+      const savedSize = item.id === "countdown" && item.size === "4x2" ? "2x4" : item.size;
+      const size = definition.supportedSizes.includes(savedSize as WidgetSize)
+        ? (savedSize as WidgetSize)
         : definition.defaultSize;
 
       return {

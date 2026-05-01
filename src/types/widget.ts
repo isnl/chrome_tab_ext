@@ -1,4 +1,4 @@
-export const WIDGET_SIZES = ["1x1", "2x1", "2x2", "4x2", "4x4"] as const;
+export const WIDGET_SIZES = ["1x1", "2x1", "2x2", "2x4", "4x2", "4x4"] as const;
 
 export type WidgetSize = (typeof WIDGET_SIZES)[number];
 
@@ -33,6 +33,7 @@ export const WIDGET_SIZE_META: Record<WidgetSize, WidgetSizeMeta> = {
   "1x1": { cols: 1, rows: 1, label: "1 x 1" },
   "2x1": { cols: 2, rows: 1, label: "2 x 1" },
   "2x2": { cols: 2, rows: 2, label: "2 x 2" },
+  "2x4": { cols: 2, rows: 4, label: "2 x 4" },
   "4x2": { cols: 4, rows: 2, label: "4 x 2" },
   "4x4": { cols: 4, rows: 4, label: "4 x 4" }
 };
@@ -51,7 +52,7 @@ export const DASHBOARD_WIDGET_DEFINITIONS: Record<DashboardWidgetId, DashboardWi
   weather: {
     id: "weather",
     title: "天气",
-    supportedSizes: ["1x1", "2x1", "2x2", "4x2"],
+    supportedSizes: ["1x1", "2x1", "2x2", "4x2", "4x4"],
     defaultSize: "2x2"
   },
   calendar: {
@@ -63,7 +64,7 @@ export const DASHBOARD_WIDGET_DEFINITIONS: Record<DashboardWidgetId, DashboardWi
   countdown: {
     id: "countdown",
     title: "倒计时",
-    supportedSizes: ["2x1", "2x2", "4x2"],
+    supportedSizes: ["2x1", "2x2", "2x4"],
     defaultSize: "2x2"
   },
   todo: {

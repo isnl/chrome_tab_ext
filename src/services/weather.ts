@@ -183,7 +183,7 @@ export async function fetchWeatherForecast(location: LocationOption): Promise<We
     `https://api.open-meteo.com/v1/forecast?${params.toString()}`
   );
 
-  const daily: WeatherDailyItem[] = payload.daily.time.slice(0, 6).map((date, index) => ({
+  const daily: WeatherDailyItem[] = payload.daily.time.slice(0, 7).map((date, index) => ({
     date,
     weatherCode: payload.daily.weather_code[index],
     max: Math.round(payload.daily.temperature_2m_max[index]),
@@ -212,7 +212,7 @@ export async function fetchWeatherForecast(location: LocationOption): Promise<We
 }
 
 export function createWeatherCacheKey(location: LocationOption) {
-  return `weather.cache.${location.latitude.toFixed(3)},${location.longitude.toFixed(3)}`;
+  return `weather.cache.v2.${location.latitude.toFixed(3)},${location.longitude.toFixed(3)}`;
 }
 
 export function isWeatherCacheRecord(value: unknown): value is WeatherCacheRecord {

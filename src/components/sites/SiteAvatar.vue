@@ -68,9 +68,10 @@ watch(
 }
 
 .site-avatar__img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+  border-radius: inherit;
 }
 
 .site-avatar__fallback {

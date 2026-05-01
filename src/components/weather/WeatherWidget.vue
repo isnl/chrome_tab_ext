@@ -230,7 +230,7 @@ onMounted(() => {
         <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="section-kicker">Daily Forecast</p>
-            <h3 class="mt-2 text-xl font-semibold text-slate-900">未来 6 天趋势</h3>
+            <h3 class="mt-2 text-xl font-semibold text-slate-900">未来 7 日趋势</h3>
           </div>
           <span class="text-sm text-slate-500">更适合快速扫一眼</span>
         </div>

@@ -32,6 +32,7 @@ const clock = useClock();
   <div v-else-if="size === '2x2'" class="clock-card">
     <div class="clock-card__head">
       <p class="clock-card__greeting">{{ clock.greetingText.value }}</p>
+      <span class="clock-card__period">{{ clock.periodLabel.value }}</span>
     </div>
 
     <div class="clock-card__body">
@@ -39,10 +40,8 @@ const clock = useClock();
         <span class="clock-card__hm">{{ clock.hours.value }}</span>
         <span class="clock-card__colon">:</span>
         <span class="clock-card__hm">{{ clock.minutes.value }}</span>
-      </div>
-      <div class="clock-card__sub">
+        <span class="clock-card__colon clock-card__colon--soft">:</span>
         <span class="clock-card__sec">{{ clock.seconds.value }}</span>
-        <span class="clock-card__period">{{ clock.periodLabel.value }}</span>
       </div>
     </div>
 
@@ -79,7 +78,7 @@ const clock = useClock();
   font-family: "IBM Plex Mono", "SF Mono", "Menlo", monospace;
   font-size: 1.5rem;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
   color: var(--ink-950);
   font-variant-numeric: tabular-nums;
 }
@@ -113,87 +112,149 @@ const clock = useClock();
 
 /* ── 2x2: card ── */
 .clock-card {
+  container-type: inline-size;
   display: flex;
   height: 100%;
   flex-direction: column;
+  position: relative;
+  isolation: isolate;
 }
 
 .clock-card__head {
+  display: flex;
   min-height: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .clock-card__greeting {
+  min-width: 0;
   margin: 0;
   font-size: 11px;
   font-weight: 500;
   line-height: 1.3;
   color: rgb(100 116 139 / 0.76);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .clock-card__body {
   flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.24rem;
+  min-height: 0;
+  padding: 0.24rem 0;
 }
 
 .clock-card__digits {
+  --clock-card-time-size: 1.18rem;
+  --clock-card-second-size: 0.96rem;
+  --clock-card-colon-size: 1rem;
+
   display: flex;
-  align-items: center;
+  width: 100%;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.03rem;
+  padding: 0.46rem 0.32rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.16));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 14px 28px -24px rgba(15, 10, 40, 0.24);
   line-height: 1;
 }
 
 .clock-card__hm {
   font-family: "IBM Plex Mono", "SF Mono", "Menlo", monospace;
-  font-size: 2.6rem;
+  font-size: var(--clock-card-time-size);
   font-weight: 750;
-  letter-spacing: -0.05em;
+  letter-spacing: 0;
   color: var(--ink-950);
   font-variant-numeric: tabular-nums;
 }
 
 .clock-card__colon {
   font-family: "IBM Plex Mono", "SF Mono", "Menlo", monospace;
-  font-size: 2.2rem;
-  font-weight: 400;
-  color: rgb(148 163 184 / 0.45);
-  margin: 0 -0.05em;
-  transform: translateY(-0.06em);
+  font-size: var(--clock-card-colon-size);
+  font-weight: 650;
+  color: rgb(148 163 184 / 0.62);
+  transform: translateY(-0.03em);
 }
 
-.clock-card__sub {
-  display: flex;
-  align-items: center;
-  gap: 0.42rem;
+.clock-card__colon--soft {
+  color: rgb(148 163 184 / 0.44);
 }
 
 .clock-card__sec {
   font-family: "IBM Plex Mono", "SF Mono", "Menlo", monospace;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: rgb(100 116 139 / 0.42);
+  font-size: var(--clock-card-second-size);
+  font-weight: 700;
+  color: rgb(71 85 105 / 0.72);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 
 .clock-card__period {
+  flex-shrink: 0;
+  padding: 0.18rem 0.42rem;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  color: rgb(100 116 139 / 0.55);
+  letter-spacing: 0;
+  color: rgb(71 85 105 / 0.68);
+  line-height: 1;
 }
 
 .clock-card__foot {
-  padding-top: 0.38rem;
-  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.32rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .clock-card__date {
   margin: 0;
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: rgb(71 85 105 / 0.72);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: rgb(71 85 105 / 0.66);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container (min-width: 108px) {
+  .clock-card__digits {
+    --clock-card-time-size: 1.46rem;
+    --clock-card-second-size: 1.12rem;
+    --clock-card-colon-size: 1.2rem;
+    gap: 0.04rem;
+  }
+}
+
+@container (min-width: 132px) {
+  .clock-card__digits {
+    --clock-card-time-size: 1.74rem;
+    --clock-card-second-size: 1.32rem;
+    --clock-card-colon-size: 1.42rem;
+    padding-inline: 0.42rem;
+  }
+}
+
+@container (min-width: 154px) {
+  .clock-card__digits {
+    --clock-card-time-size: 1.96rem;
+    --clock-card-second-size: 1.48rem;
+    --clock-card-colon-size: 1.6rem;
+  }
 }
 </style>

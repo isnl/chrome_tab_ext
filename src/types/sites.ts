@@ -27,3 +27,13 @@ export type AddSiteResult =
       ok: false;
       reason: AddSiteFailureReason;
     };
+
+export type UpdateSiteResult =
+  | {
+      ok: true;
+      item: SiteShortcut;
+    }
+  | {
+      ok: false;
+      reason: "invalid-url" | "duplicate" | "not-found";
+    };

@@ -1,7 +1,7 @@
 import { computed, ref, watch } from "vue";
 
 import { storageGet, storageSet } from "@/services/storage";
-import type { AddSiteResult, SiteHistoryResult, SiteShortcut } from "@/types/sites";
+import type { AddSiteResult, SiteHistoryResult, SiteShortcut, UpdateSiteResult } from "@/types/sites";
 
 const ITEMS_KEY = "sites.items";
 const MAX_SITES = 16;
@@ -23,6 +23,10 @@ function hasHistoryApi() {
 
 function hasRuntimeApi() {
   return Boolean(globalThis.chrome?.runtime?.id && globalThis.chrome?.runtime?.getURL);
+}
+
+function canRequestHistoryPermission() {
+  return hasRuntimeApi() && hasPermissionsApi();
 }
 
 function stripWww(hostname: string) {
@@ -126,7 +130,7 @@ function permissionsRequest(permissions: chrome.permissions.Permissions) {
 
 function chromeHistorySearch(options: chrome.history.HistoryQuery) {
   if (!hasHistoryApi()) {
-    return Promise.resolve([] as chrome.history.HistoryItem[]);
+    return Promise.reject(new Error("当前页面无法访问 Chrome 历史 API"));
   }
 
   return new Promise<chrome.history.HistoryItem[]>((resolve, reject) => {
@@ -248,7 +252,7 @@ function createSitesStore() {
   }
 
   async function refreshHistoryPermission() {
-    if (!hasPermissionsApi() || !hasHistoryApi()) {
+    if (!canRequestHistoryPermission()) {
       historyPermissionGranted.value = false;
       return false;
     }
@@ -264,7 +268,7 @@ function createSitesStore() {
   }
 
   async function ensureHistoryPermission() {
-    if (!hasPermissionsApi() || !hasHistoryApi()) {
+    if (!canRequestHistoryPermission()) {
       historyMessage.value = "当前环境不支持浏览历史搜索，请在扩展页面中使用。";
       historyPermissionGranted.value = false;
       return false;
@@ -320,6 +324,34 @@ function createSitesStore() {
     return addSite(item.url, item.title);
   }
 
+  function updateSite(id: string, updates: { name?: string; url?: string }): UpdateSiteResult {
+    const current = items.value.find((item) => item.id === id);
+    if (!current) {
+      return { ok: false, reason: "not-found" };
+    }
+
+    const parsed = toHttpUrl(updates.url ?? current.url);
+    if (!parsed) {
+      return { ok: false, reason: "invalid-url" };
+    }
+
+    const normalizedHostname = stripWww(parsed.hostname.toLowerCase());
+    const hasDuplicate = items.value.some((item) => item.id !== id && item.hostname.toLowerCase() === normalizedHostname);
+    if (hasDuplicate) {
+      return { ok: false, reason: "duplicate" };
+    }
+
+    const nextItem: SiteShortcut = {
+      ...current,
+      name: deriveSiteName(parsed, updates.name ?? current.name),
+      url: parsed.toString(),
+      hostname: stripWww(parsed.hostname)
+    };
+
+    items.value = items.value.map((item) => (item.id === id ? nextItem : item));
+    return { ok: true, item: nextItem };
+  }
+
   function removeSite(id: string) {
     items.value = items.value
       .filter((item) => item.id !== id)
@@ -340,6 +372,12 @@ function createSitesStore() {
     isSearchingHistory.value = true;
 
     try {
+      if (!hasHistoryApi()) {
+        historyResults.value = [];
+        historyMessage.value = "已获得浏览历史权限，但 Chrome 历史 API 尚未就绪，请刷新新标签页后重试。";
+        return;
+      }
+
       const rawItems = await chromeHistorySearch({
         text: trimmed,
         startTime: 0,
@@ -380,7 +418,7 @@ function createSitesStore() {
 
   const itemCount = computed(() => items.value.length);
   const canAddMore = computed(() => items.value.length < MAX_SITES);
-  const historySupported = computed(() => hasPermissionsApi() && hasHistoryApi());
+  const historySupported = computed(() => canRequestHistoryPermission());
 
   watch(
     items,
@@ -416,6 +454,7 @@ function createSitesStore() {
     searchHistory,
     addSite,
     addHistorySite,
+    updateSite,
     removeSite,
     createFaviconUrl: createSiteFaviconUrl
   };

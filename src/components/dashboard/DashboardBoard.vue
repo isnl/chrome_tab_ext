@@ -90,7 +90,6 @@ onMounted(() => {
           <SitesSummaryWidget
             v-else-if="item.id === 'sites'"
             :size="item.size"
-            @manage="settingsPanel = 'sites'"
           />
         </WidgetShell>
       </template>

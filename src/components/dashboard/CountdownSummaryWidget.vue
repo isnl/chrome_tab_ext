@@ -10,7 +10,7 @@ defineProps<{
 
 const countdown = useCountdown();
 
-// Drag state for 4x2
+// Drag state for the scrollable list.
 const dragFrom = ref(-1);
 const dragOver = ref(-1);
 const isDragging = ref(false);
@@ -44,7 +44,7 @@ function resetDrag() {
 </script>
 
 <template>
-  <div class="flex h-full flex-col">
+  <div class="flex h-full min-h-0 flex-col">
     <!-- 2x1: compact centered layout -->
     <template v-if="size === '2x1'">
       <div v-if="countdown.nearestItem.value" class="flex h-full items-center justify-center gap-4">
@@ -62,43 +62,21 @@ function resetDrag() {
       </div>
     </template>
 
-    <!-- 2x2: top items list -->
-    <template v-else-if="size === '2x2'">
-      <p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">倒计时</p>
-      <div v-if="countdown.visibleItems.value.length" class="mt-2 flex flex-1 flex-col gap-1.5 overflow-hidden">
-        <div
-          v-for="item in countdown.visibleItems.value.slice(0, 4)"
-          :key="item.id"
-          class="flex items-center justify-between rounded-lg bg-white/35 px-2.5 py-1.5"
-        >
-          <span class="truncate text-[11px] font-medium text-slate-600">{{ item.label }}</span>
-          <div class="flex items-baseline gap-1">
-            <span class="text-sm font-bold text-emerald-600">{{ countdown.getDaysLeft(item) }}</span>
-            <span class="text-[9px] text-slate-400">天</span>
-          </div>
-        </div>
-      </div>
-      <div v-else class="flex flex-1 items-center justify-center">
-        <p class="text-xs text-slate-400">暂无倒计时</p>
-      </div>
-    </template>
-
-    <!-- 4x2: full list with centered card layout -->
-    <template v-else-if="size === '4x2'">
-      <div class="flex items-center justify-between">
-        <p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">倒计时</p>
-        <span v-if="countdown.nearestItem.value" class="text-[10px] text-slate-400">
-          最近: {{ countdown.nearestItem.value.label }}
-        </span>
-      </div>
-      <div v-if="countdown.visibleItems.value.length" class="mt-2 grid flex-1 grid-cols-2 gap-2 overflow-hidden">
+    <!-- 2x2 / 2x4: scrollable list -->
+    <template v-else-if="size === '2x2' || size === '2x4'">
+      <p class="countdown-title">倒计时</p>
+      <div
+        v-if="countdown.visibleItems.value.length"
+        class="countdown-list scroll-soft mt-1.5 min-h-0 flex-1"
+        :class="{ 'countdown-list--fit-four': size === '2x2' }"
+      >
         <div
           v-for="(item, index) in countdown.visibleItems.value"
           :key="item.id"
-          class="countdown-card"
+          class="countdown-row"
           :class="{
             'opacity-40': isDragging && dragFrom === index,
-            'ring-1 ring-indigo-300': isDragging && dragOver === index && dragFrom !== index
+            'ring-1 ring-emerald-300': isDragging && dragOver === index && dragFrom !== index
           }"
           draggable="true"
           @dragstart="handleDragStart($event, index)"
@@ -106,15 +84,10 @@ function resetDrag() {
           @drop="handleDrop(index)"
           @dragend="resetDrag"
         >
-          <div class="flex h-full flex-col items-center justify-center text-center">
-            <div class="flex items-baseline gap-0.5">
-              <span class="text-xl font-bold leading-none text-emerald-600">{{ countdown.getDaysLeft(item) }}</span>
-              <span class="text-[9px] text-slate-400">天</span>
-            </div>
-            <div class="mt-1.5 flex items-center gap-1.5">
-              <span class="countdown-dot"></span>
-              <span class="truncate text-[11px] font-medium text-slate-600">{{ item.label }}</span>
-            </div>
+          <span class="countdown-row__label">{{ item.label }}</span>
+          <div class="countdown-row__days">
+            <span class="countdown-row__number">{{ countdown.getDaysLeft(item) }}</span>
+            <span class="countdown-row__unit">天</span>
           </div>
         </div>
       </div>
@@ -126,30 +99,83 @@ function resetDrag() {
 </template>
 
 <style scoped>
-.countdown-card {
+.countdown-title {
+  flex: none;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.countdown-list {
+  --countdown-list-gap: 4px;
+  display: grid;
+  grid-auto-rows: 24px;
+  align-content: start;
+  gap: var(--countdown-list-gap);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.countdown-list--fit-four {
+  grid-auto-rows: calc((100% - (var(--countdown-list-gap) * 3)) / 4);
+}
+
+.countdown-row {
   display: flex;
-  flex-direction: column;
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.4);
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow: hidden;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.36);
   cursor: grab;
   user-select: none;
-  transition: all 200ms ease;
+  transition: background 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
 }
 
-.countdown-card:hover {
-  background: rgba(255, 255, 255, 0.6);
+.countdown-row:hover {
+  background: rgba(255, 255, 255, 0.56);
 }
 
-.countdown-card:active {
+.countdown-row:active {
   cursor: grabbing;
 }
 
-.countdown-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #34d399;
+.countdown-row__label {
+  min-width: 0;
+  overflow: hidden;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.countdown-row__days {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   flex-shrink: 0;
+  line-height: 1;
+}
+
+.countdown-row__number {
+  color: #059669;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.countdown-row__unit {
+  color: #94a3b8;
+  font-size: 9px;
+  line-height: 1;
 }
 </style>
