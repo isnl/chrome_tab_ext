@@ -95,7 +95,7 @@ function handlePull() {
   </div>
 
   <!-- Pull cord -->
-  <WallpaperPullCord @pull="handlePull" />
+  <WallpaperPullCord :loading="wallpaper.isTransitioning.value" @pull="handlePull" />
 
   <div class="page-shell min-h-screen">
     <div class="mx-auto flex min-h-screen w-full max-w-[1540px] flex-col px-4 pb-10 pt-5 sm:px-6 lg:px-8">

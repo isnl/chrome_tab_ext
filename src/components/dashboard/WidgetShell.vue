@@ -14,6 +14,13 @@ const emit = defineEmits<{
 }>();
 
 const isCompact = computed(() => props.size === "1x1" || props.size === "2x1");
+const contentPaddingClass = computed(() => {
+  if (props.kind === "aiChat" && props.size === "4x1") {
+    return "p-0";
+  }
+
+  return props.size === "1x1" ? "p-2" : isCompact.value ? "p-3.5" : "p-4";
+});
 
 type WidgetThemeStyle = CSSProperties & Record<`--${string}`, string>;
 
@@ -61,6 +68,12 @@ const themeStyle = computed<WidgetThemeStyle>(() => {
         "--widget-shell-bg": "linear-gradient(160deg, rgba(247,250,255,0.94), rgba(219,234,254,0.76) 46%, rgba(224,242,254,0.76))",
         "--widget-shell-glow": "radial-gradient(circle at top right, rgba(14,165,233,0.2), transparent 42%)"
       };
+    case "aiChat":
+      return {
+        "--surface-radius": "20px",
+        "--widget-shell-bg": "linear-gradient(160deg, rgba(248,255,252,0.94), rgba(204,251,241,0.74) 48%, rgba(219,234,254,0.72))",
+        "--widget-shell-glow": "radial-gradient(circle at top right, rgba(20,184,166,0.18), transparent 42%)"
+      };
     default:
       return {
         "--surface-radius": "20px",
@@ -79,12 +92,13 @@ function handleContextMenu(event: MouseEvent) {
 <template>
   <article
     class="surface-card dashboard-widget relative h-full overflow-hidden"
+    :class="{ 'dashboard-widget--ai-chat': kind === 'aiChat' }"
     :style="themeStyle"
     @contextmenu="handleContextMenu"
   >
     <div class="dashboard-widget__grain"></div>
 
-    <div class="relative flex h-full min-h-0 flex-col" :class="size === '1x1' ? 'p-2' : isCompact ? 'p-3.5' : 'p-4'">
+    <div class="relative flex h-full min-h-0 flex-col" :class="contentPaddingClass">
       <div class="min-h-0 flex-1">
         <slot />
       </div>
@@ -95,8 +109,16 @@ function handleContextMenu(event: MouseEvent) {
 <style scoped>
 .dashboard-widget {
   background: var(--widget-shell-bg);
-  transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 280ms ease-out;
+  transition: border-color 180ms ease,
+    box-shadow 220ms ease-out,
+    transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dashboard-widget--ai-chat:focus-within {
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-soft),
+    0 0 0 3px rgba(20, 184, 166, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
 .dashboard-widget::before {

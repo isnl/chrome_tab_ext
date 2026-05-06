@@ -10,7 +10,7 @@ defineProps<{
 
 const countdown = useCountdown();
 
-// Drag state for the scrollable list.
+// Drag state for the scrollable card grid.
 const dragFrom = ref(-1);
 const dragOver = ref(-1);
 const isDragging = ref(false);
@@ -62,18 +62,16 @@ function resetDrag() {
       </div>
     </template>
 
-    <!-- 2x2 / 2x4: scrollable list -->
+    <!-- 2x2 / 2x4: scrollable square card grid -->
     <template v-else-if="size === '2x2' || size === '2x4'">
-      <p class="countdown-title">倒计时</p>
       <div
         v-if="countdown.visibleItems.value.length"
-        class="countdown-list scroll-soft mt-1.5 min-h-0 flex-1"
-        :class="{ 'countdown-list--fit-four': size === '2x2' }"
+        class="countdown-card-grid scroll-soft min-h-0 flex-1"
       >
         <div
           v-for="(item, index) in countdown.visibleItems.value"
           :key="item.id"
-          class="countdown-row"
+          class="countdown-card"
           :class="{
             'opacity-40': isDragging && dragFrom === index,
             'ring-1 ring-emerald-300': isDragging && dragOver === index && dragFrom !== index
@@ -84,10 +82,10 @@ function resetDrag() {
           @drop="handleDrop(index)"
           @dragend="resetDrag"
         >
-          <span class="countdown-row__label">{{ item.label }}</span>
-          <div class="countdown-row__days">
-            <span class="countdown-row__number">{{ countdown.getDaysLeft(item) }}</span>
-            <span class="countdown-row__unit">天</span>
+          <span class="countdown-card__label">{{ item.label }}</span>
+          <div class="countdown-card__days">
+            <span class="countdown-card__number">{{ countdown.getDaysLeft(item) }}</span>
+            <span class="countdown-card__unit">天</span>
           </div>
         </div>
       </div>
@@ -99,83 +97,115 @@ function resetDrag() {
 </template>
 
 <style scoped>
-.countdown-title {
-  flex: none;
-  color: #94a3b8;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.24em;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.countdown-list {
-  --countdown-list-gap: 4px;
+.countdown-card-grid {
+  --countdown-card-gap: 6px;
   display: grid;
-  grid-auto-rows: 24px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: max-content;
   align-content: start;
-  gap: var(--countdown-list-gap);
+  gap: var(--countdown-card-gap);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 2px;
 }
 
-.countdown-list--fit-four {
-  grid-auto-rows: calc((100% - (var(--countdown-list-gap) * 3)) / 4);
-}
-
-.countdown-row {
+.countdown-card {
+  --countdown-card-accent: #059669;
+  --countdown-card-soft: rgba(209, 250, 229, 0.56);
   display: flex;
+  aspect-ratio: 1 / 1;
+  position: relative;
   min-width: 0;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
+  gap: 4px;
   overflow: hidden;
-  padding: 0 8px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.36);
+  padding: 18px 7px 7px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.64);
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.78), var(--countdown-card-soft));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 10px 22px -20px color-mix(in srgb, var(--countdown-card-accent) 42%, transparent);
   cursor: grab;
   user-select: none;
-  transition: background 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
 }
 
-.countdown-row:hover {
-  background: rgba(255, 255, 255, 0.56);
+.countdown-card:nth-child(4n + 2) {
+  --countdown-card-accent: #0284c7;
+  --countdown-card-soft: rgba(224, 242, 254, 0.66);
 }
 
-.countdown-row:active {
+.countdown-card:nth-child(4n + 3) {
+  --countdown-card-accent: #d97706;
+  --countdown-card-soft: rgba(254, 243, 199, 0.7);
+}
+
+.countdown-card:nth-child(4n + 4) {
+  --countdown-card-accent: #e11d48;
+  --countdown-card-soft: rgba(255, 228, 230, 0.66);
+}
+
+.countdown-card::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--countdown-card-accent);
+  opacity: 0.68;
+  transform: translateX(-50%);
+}
+
+.countdown-card:hover {
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.9), var(--countdown-card-soft));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 12px 24px -20px color-mix(in srgb, var(--countdown-card-accent) 52%, transparent);
+  transform: translateY(-1px);
+}
+
+.countdown-card:active {
   cursor: grabbing;
+  transform: translateY(0);
 }
 
-.countdown-row__label {
+.countdown-card__label {
+  position: absolute;
+  inset: 13px 8px auto;
   min-width: 0;
   overflow: hidden;
-  color: #475569;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
+  color: #334155;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.countdown-row__days {
+.countdown-card__days {
   display: flex;
   align-items: baseline;
-  gap: 4px;
-  flex-shrink: 0;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
   line-height: 1;
 }
 
-.countdown-row__number {
-  color: #059669;
-  font-size: 14px;
-  font-weight: 800;
+.countdown-card__number {
+  color: var(--countdown-card-accent);
+  font-size: 19px;
+  font-weight: 850;
   line-height: 1;
 }
 
-.countdown-row__unit {
-  color: #94a3b8;
+.countdown-card__unit {
+  color: #64748b;
   font-size: 9px;
+  font-weight: 700;
   line-height: 1;
 }
 </style>

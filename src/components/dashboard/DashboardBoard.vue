@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 
+import { useAiChat } from "@/composables/useAiChat";
 import { useDashboard } from "@/composables/useDashboard";
 import { DASHBOARD_WIDGET_DEFINITIONS, type DashboardWidgetId } from "@/types/widget";
 
+import AiChatSettingsPanel from "./AiChatSettingsPanel.vue";
+import AiChatSummaryWidget from "./AiChatSummaryWidget.vue";
 import CalendarSummaryWidget from "./CalendarSummaryWidget.vue";
 import ClockSettingsPanel from "./ClockSettingsPanel.vue";
 import ClockSummaryWidget from "./ClockSummaryWidget.vue";
@@ -22,6 +25,7 @@ import WidgetContextMenu from "./WidgetContextMenu.vue";
 import WidgetShell from "./WidgetShell.vue";
 
 const dashboard = useDashboard();
+const aiChat = useAiChat();
 const orderedWidgets = computed(() => dashboard.orderedWidgets.value);
 
 const menuState = ref<{
@@ -54,11 +58,17 @@ function handleSettings() {
 }
 
 function handleHistory() {
+  if (menuState.value?.id === "aiChat") {
+    aiChat.requestConversationModal();
+    return;
+  }
+
   todoHistoryOpen.value = true;
 }
 
 onMounted(() => {
   void dashboard.initialize();
+  void aiChat.initialize();
 });
 </script>
 
@@ -89,6 +99,11 @@ onMounted(() => {
 
           <SitesSummaryWidget
             v-else-if="item.id === 'sites'"
+            :size="item.size"
+          />
+
+          <AiChatSummaryWidget
+            v-else-if="item.id === 'aiChat'"
             :size="item.size"
           />
         </WidgetShell>
@@ -133,6 +148,11 @@ onMounted(() => {
 
   <SitesSettingsPanel
     :open="settingsPanel === 'sites'"
+    @close="settingsPanel = null"
+  />
+
+  <AiChatSettingsPanel
+    :open="settingsPanel === 'aiChat'"
     @close="settingsPanel = null"
   />
 

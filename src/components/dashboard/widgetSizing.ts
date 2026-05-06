@@ -6,6 +6,8 @@ export function getWidgetSpanClasses(size: WidgetSize) {
       return "widget-span-1x1";
     case "2x1":
       return "widget-span-2x1";
+    case "4x1":
+      return "widget-span-4x1";
     case "2x2":
       return "widget-span-2x2";
     case "2x4":

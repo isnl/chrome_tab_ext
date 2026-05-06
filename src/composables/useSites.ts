@@ -6,7 +6,7 @@ import type { AddSiteResult, SiteHistoryResult, SiteShortcut, UpdateSiteResult }
 const ITEMS_KEY = "sites.items";
 const MAX_SITES = 16;
 const HISTORY_PERMISSIONS: chrome.permissions.Permissions = {
-  permissions: ["history", "favicon"]
+  permissions: ["history"]
 };
 
 function generateId() {
@@ -111,6 +111,11 @@ function permissionsContains(permissions: chrome.permissions.Permissions) {
 
   return new Promise<boolean>((resolve) => {
     chrome.permissions.contains(permissions, (granted) => {
+      if (chrome.runtime?.lastError) {
+        resolve(false);
+        return;
+      }
+
       resolve(Boolean(granted));
     });
   });
@@ -123,6 +128,11 @@ function permissionsRequest(permissions: chrome.permissions.Permissions) {
 
   return new Promise<boolean>((resolve) => {
     chrome.permissions.request(permissions, (granted) => {
+      if (chrome.runtime?.lastError) {
+        resolve(false);
+        return;
+      }
+
       resolve(Boolean(granted));
     });
   });

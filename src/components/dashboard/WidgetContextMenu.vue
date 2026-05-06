@@ -21,10 +21,10 @@ const emit = defineEmits<{
 }>();
 
 const hasSettings = computed(() =>
-  props.widgetId === "weather" || props.widgetId === "clock" || props.widgetId === "countdown" || props.widgetId === "todo" || props.widgetId === "sites"
+  props.widgetId === "weather" || props.widgetId === "clock" || props.widgetId === "countdown" || props.widgetId === "todo" || props.widgetId === "sites" || props.widgetId === "aiChat"
 );
 
-const hasHistory = computed(() => props.widgetId === "todo");
+const hasHistory = computed(() => props.widgetId === "todo" || props.widgetId === "aiChat");
 
 const settingsLabel = computed(() => {
   switch (props.widgetId) {
@@ -33,9 +33,12 @@ const settingsLabel = computed(() => {
     case "countdown": return "管理倒计时";
     case "todo": return "隐私设置";
     case "sites": return "添加网站";
+    case "aiChat": return "接口配置";
     default: return "";
   }
 });
+
+const historyLabel = computed(() => (props.widgetId === "aiChat" ? "历史对话" : "历史记录"));
 
 const menuStyle = computed(() => {
   const width = 200;
@@ -147,7 +150,7 @@ onBeforeUnmount(() => {
             </button>
           </div>
 
-          <!-- history (todo only) -->
+          <!-- history -->
           <div v-if="hasHistory" class="context-menu-divider"></div>
           <div v-if="hasHistory" class="context-menu-group">
             <button
@@ -155,7 +158,7 @@ onBeforeUnmount(() => {
               type="button"
               @click="emit('history'); emit('close')"
             >
-              <span>历史记录</span>
+              <span>{{ historyLabel }}</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400">
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
               </svg>
