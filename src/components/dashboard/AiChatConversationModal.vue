@@ -543,6 +543,7 @@ watch(
   flex: 1;
   border: none;
   background: transparent;
+  caret-color: #0f172a;
   color: #0f172a;
   font-size: 12px;
   font-weight: 650;
@@ -702,6 +703,7 @@ watch(
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.9);
   padding: 0 10px;
+  caret-color: #0f172a;
   color: #0f172a;
   font-size: 12px;
   font-weight: 700;
@@ -989,6 +991,7 @@ watch(
   resize: none;
   border: none;
   background: transparent;
+  caret-color: #0f172a;
   padding: 0 2px;
   color: #334155;
   font-size: 13px;

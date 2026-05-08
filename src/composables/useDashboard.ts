@@ -11,10 +11,22 @@ import {
 } from "@/types/widget";
 
 const STORAGE_KEY = "dashboard.layout";
+const VISIBILITY_STORAGE_KEY = "dashboard.visibility";
 const GRID_COLS = 12;
+const WIDGET_IDS = Object.keys(DASHBOARD_WIDGET_DEFINITIONS) as DashboardWidgetId[];
+
+type DashboardWidgetVisibility = Record<DashboardWidgetId, boolean>;
 
 function cloneLayout(widgets: DashboardWidgetState[]): DashboardWidgetState[] {
   return toRaw(widgets).map((item) => ({ ...toRaw(item) }));
+}
+
+function createDefaultVisibility(): DashboardWidgetVisibility {
+  return Object.fromEntries(WIDGET_IDS.map((id) => [id, false])) as DashboardWidgetVisibility;
+}
+
+function cloneVisibility(visibility: DashboardWidgetVisibility): DashboardWidgetVisibility {
+  return { ...toRaw(visibility) };
 }
 
 function buildOccupancy(widgets: DashboardWidgetState[], excludeId?: string): Set<string> {
@@ -113,8 +125,26 @@ function sanitizeLayout(payload: unknown) {
   return autoAssignPositions([...incoming, ...fallback].sort((left, right) => left.order - right.order));
 }
 
+function sanitizeVisibility(payload: unknown): DashboardWidgetVisibility {
+  const visibility = createDefaultVisibility();
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return visibility;
+  }
+
+  for (const id of WIDGET_IDS) {
+    const value = (payload as Partial<Record<DashboardWidgetId, unknown>>)[id];
+    if (typeof value === "boolean") {
+      visibility[id] = value;
+    }
+  }
+
+  return visibility;
+}
+
 function createDashboardStore() {
   const widgets = ref<DashboardWidgetState[]>(DEFAULT_DASHBOARD_LAYOUT.map((item) => ({ ...item })));
+  const widgetVisibility = ref<DashboardWidgetVisibility>(createDefaultVisibility());
   const isHydrated = ref(false);
   let hydrationPromise: Promise<void> | null = null;
 
@@ -125,11 +155,13 @@ function createDashboardStore() {
 
     hydrationPromise = (async () => {
       const stored = await storageGet<Record<string, unknown>>({
-        [STORAGE_KEY]: null
+        [STORAGE_KEY]: null,
+        [VISIBILITY_STORAGE_KEY]: null
       });
 
       const raw = stored[STORAGE_KEY];
       widgets.value = sanitizeLayout(raw);
+      widgetVisibility.value = sanitizeVisibility(stored[VISIBILITY_STORAGE_KEY]);
       isHydrated.value = true;
     })();
 
@@ -160,6 +192,18 @@ function createDashboardStore() {
   }
 
   const orderedWidgets = computed(() => [...widgets.value].sort((left, right) => left.order - right.order));
+  const visibleWidgets = computed(() => orderedWidgets.value.filter((item) => widgetVisibility.value[item.id]));
+
+  function isWidgetVisible(id: DashboardWidgetId) {
+    return widgetVisibility.value[id] ?? false;
+  }
+
+  function setWidgetVisible(id: DashboardWidgetId, visible: boolean) {
+    widgetVisibility.value = {
+      ...widgetVisibility.value,
+      [id]: visible
+    };
+  }
 
   function reorderWidgets(fromIndex: number, toIndex: number) {
     const sorted = [...widgets.value].sort((left, right) => left.order - right.order);
@@ -184,17 +228,35 @@ function createDashboardStore() {
     { deep: true }
   );
 
+  watch(
+    widgetVisibility,
+    (value) => {
+      if (!isHydrated.value) {
+        return;
+      }
+
+      storageSet({ [VISIBILITY_STORAGE_KEY]: cloneVisibility(value) }).catch((error) => {
+        console.warn("[dashboard] 组件显示状态保存失败:", error);
+      });
+    },
+    { deep: true }
+  );
+
   void initialize();
 
   return {
     widgets,
+    widgetVisibility,
     orderedWidgets,
+    visibleWidgets,
     isHydrated,
     initialize,
     setWidgetSize,
     moveWidget,
     cycleWidgetSize,
-    reorderWidgets
+    reorderWidgets,
+    isWidgetVisible,
+    setWidgetVisible
   };
 }
 

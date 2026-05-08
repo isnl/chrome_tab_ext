@@ -1,37 +1,14 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
+import ComponentVisibilityDrawer from "@/components/dashboard/ComponentVisibilityDrawer.vue";
 import DashboardBoard from "@/components/dashboard/DashboardBoard.vue";
 import SearchBar from "@/components/search/StickySearchBar.vue";
 import WallpaperPullCord from "@/components/wallpaper/WallpaperPullCord.vue";
 import { useWallpaper } from "@/composables/useWallpaper";
 
 const wallpaper = useWallpaper();
-
-// Hide-on-scroll-down, show-on-scroll-up
-const headerHidden = ref(false);
-let lastScrollY = 0;
-const SCROLL_THRESHOLD = 10;
-
-function handleScroll() {
-  const currentY = window.scrollY;
-  if (currentY < SCROLL_THRESHOLD) {
-    headerHidden.value = false;
-  } else if (currentY - lastScrollY > SCROLL_THRESHOLD) {
-    headerHidden.value = true;
-  } else if (lastScrollY - currentY > SCROLL_THRESHOLD) {
-    headerHidden.value = false;
-  }
-  lastScrollY = currentY;
-}
-
-onMounted(() => {
-  window.addEventListener("scroll", handleScroll, { passive: true });
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("scroll", handleScroll);
-});
+const settingsDrawerOpen = ref(false);
 
 // Two-layer crossfade
 const layerA = ref<string | null>(null);
@@ -100,10 +77,29 @@ function handlePull() {
   <div class="page-shell min-h-screen">
     <div class="mx-auto flex min-h-screen w-full max-w-[1540px] flex-col px-4 pb-10 pt-5 sm:px-6 lg:px-8">
       <header
-        class="sticky top-0 z-50 transition-transform duration-300"
-        :class="{ '-translate-y-full': headerHidden }"
+        class="sticky top-0 z-50"
       >
-        <SearchBar />
+        <div class="top-toolbar">
+          <SearchBar class="top-toolbar__search" />
+
+          <button
+            class="component-settings-trigger"
+            :class="{ 'component-settings-trigger--active': settingsDrawerOpen }"
+            type="button"
+            aria-controls="component-visibility-drawer"
+            :aria-expanded="settingsDrawerOpen"
+            aria-label="打开组件设置"
+            title="组件显示"
+            @click="settingsDrawerOpen = true"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3.5" y="3.5" width="7" height="7" rx="1.8" />
+              <rect x="13.5" y="3.5" width="7" height="7" rx="1.8" />
+              <rect x="3.5" y="13.5" width="7" height="7" rx="1.8" />
+              <rect x="13.5" y="13.5" width="7" height="7" rx="1.8" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       <main class="mt-6 flex-1">
@@ -111,9 +107,81 @@ function handlePull() {
       </main>
     </div>
   </div>
+
+  <ComponentVisibilityDrawer
+    :open="settingsDrawerOpen"
+    @close="settingsDrawerOpen = false"
+  />
 </template>
 
 <style scoped>
+.top-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0 16px;
+}
+
+.top-toolbar__search {
+  flex: 1 1 680px;
+  max-width: 680px;
+  min-width: 0;
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.component-settings-trigger {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  margin-top: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(248, 246, 255, 0.7));
+  color: var(--muted-600);
+  box-shadow:
+    0 16px 32px -26px rgba(15, 10, 40, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(18px) saturate(1.4);
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.component-settings-trigger:hover,
+.component-settings-trigger--active {
+  transform: translateY(-1px);
+  border-color: rgba(124, 58, 237, 0.2);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(237, 233, 254, 0.78));
+  color: var(--accent-700);
+  box-shadow:
+    0 20px 38px -26px rgba(124, 58, 237, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.component-settings-trigger:active {
+  transform: translateY(0);
+  box-shadow:
+    0 12px 24px -24px rgba(124, 58, 237, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 520px) {
+  .top-toolbar {
+    gap: 8px;
+    padding: 0;
+  }
+
+  .component-settings-trigger {
+    margin-top: 36px;
+  }
+}
+
 .wallpaper-container {
   position: fixed;
   inset: 0;

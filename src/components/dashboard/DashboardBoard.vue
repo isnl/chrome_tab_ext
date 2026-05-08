@@ -26,7 +26,7 @@ import WidgetShell from "./WidgetShell.vue";
 
 const dashboard = useDashboard();
 const aiChat = useAiChat();
-const orderedWidgets = computed(() => dashboard.orderedWidgets.value);
+const visibleWidgets = computed(() => dashboard.visibleWidgets.value);
 
 const menuState = ref<{
   id: DashboardWidgetId;
@@ -38,7 +38,7 @@ const settingsPanel = ref<DashboardWidgetId | null>(null);
 const todoHistoryOpen = ref(false);
 
 const menuWidget = computed(() =>
-  menuState.value ? orderedWidgets.value.find((item) => item.id === menuState.value?.id) ?? null : null
+  menuState.value ? visibleWidgets.value.find((item) => item.id === menuState.value?.id) ?? null : null
 );
 
 function openWidgetMenu(id: DashboardWidgetId, position: { x: number; y: number }) {
@@ -73,8 +73,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <section>
-    <DashboardGrid :items="orderedWidgets" @reorder="dashboard.reorderWidgets" @move="dashboard.moveWidget">
+  <section v-if="visibleWidgets.length">
+    <DashboardGrid :items="visibleWidgets" @reorder="dashboard.reorderWidgets" @move="dashboard.moveWidget">
       <template #item="{ item }">
         <WidgetShell
           :title="DASHBOARD_WIDGET_DEFINITIONS[item.id].title"
