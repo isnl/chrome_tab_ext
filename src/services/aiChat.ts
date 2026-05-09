@@ -15,6 +15,7 @@ type ChatCompletionRequest = {
 
 type ChatCompletionOptions = {
   deepThinking?: boolean;
+  systemPrompt?: string;
   temperature?: number;
   maxTokens?: number;
 };
@@ -184,9 +185,11 @@ function createChatBody(
 ): ChatCompletionRequest {
   const normalizedMessages = normalizeMessages(messages);
   const shouldUseDeepThinking = Boolean(options.deepThinking && config.supportsDeepThinking);
-  const requestMessages = shouldUseDeepThinking
-    ? [{ role: "system" as const, content: DEEP_THINKING_SYSTEM_PROMPT }, ...normalizedMessages]
-    : normalizedMessages;
+  const systemMessages: ChatMessage[] = [
+    ...(shouldUseDeepThinking ? [{ role: "system" as const, content: DEEP_THINKING_SYSTEM_PROMPT }] : []),
+    ...(options.systemPrompt?.trim() ? [{ role: "system" as const, content: options.systemPrompt.trim() }] : [])
+  ];
+  const requestMessages = [...systemMessages, ...normalizedMessages];
 
   return {
     model: config.model.trim(),

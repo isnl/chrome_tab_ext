@@ -72,7 +72,8 @@ function normalizedDraftConfig(): AiChatConfig {
   return {
     models,
     activeModelId,
-    deepThinking: aiChat.config.value.deepThinking && Boolean(models.find((model) => model.id === activeModelId)?.supportsDeepThinking)
+    deepThinking: aiChat.config.value.deepThinking && Boolean(models.find((model) => model.id === activeModelId)?.supportsDeepThinking),
+    bookmarkSearch: aiChat.config.value.bookmarkSearch
   };
 }
 

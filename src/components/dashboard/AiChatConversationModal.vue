@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 
 import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue";
+import { useBookmarkSearch } from "@/composables/useBookmarkSearch";
 import { useAiChat } from "@/composables/useAiChat";
 import type { AiChatConversation } from "@/types/aiChat";
 
@@ -22,6 +23,7 @@ const emit = defineEmits<{
 }>();
 
 const aiChat = useAiChat();
+const bookmarkSearch = useBookmarkSearch();
 const scrollEl = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
 const draftMessage = ref("");
@@ -29,6 +31,8 @@ const searchText = ref("");
 const editingId = ref<string | null>(null);
 const editingTitle = ref("");
 const pendingDeleteId = ref<string | null>(null);
+const bookmarkNotice = ref("");
+let bookmarkNoticeTimer = 0;
 
 const activeConversation = computed(() => aiChat.activeConversation.value);
 const activeModelId = computed({
@@ -39,6 +43,18 @@ const activeModelSupportsDeepThinking = computed(() => Boolean(aiChat.activeMode
 const deepThinkingEnabled = computed({
   get: () => aiChat.config.value.deepThinking && activeModelSupportsDeepThinking.value,
   set: (value: boolean) => aiChat.setDeepThinking(value)
+});
+const bookmarkSearchEnabled = computed(() => aiChat.config.value.bookmarkSearch);
+const bookmarkSearchSwitchTitle = computed(() => {
+  if (!bookmarkSearch.supported.value) {
+    return "点击查看书签搜索不可用原因";
+  }
+
+  if (bookmarkSearch.isRequestingPermission.value) {
+    return "正在请求书签权限";
+  }
+
+  return bookmarkSearchEnabled.value ? "关闭书签搜索" : "开启书签搜索";
 });
 
 const sortedConversations = computed(() =>
@@ -94,7 +110,7 @@ const canSend = computed(() => Boolean(draftMessage.value.trim()) && !props.load
 
 const statusText = computed(() => {
   if (props.loading) {
-    return "正在生成回复";
+    return bookmarkSearchEnabled.value ? "正在检索书签并生成回复" : "正在生成回复";
   }
 
   if (props.titleGeneratingConversationId === activeConversation.value?.id) {
@@ -115,6 +131,26 @@ function toggleDeepThinking() {
   }
 
   deepThinkingEnabled.value = !deepThinkingEnabled.value;
+}
+
+function showBookmarkNotice(message: string) {
+  window.clearTimeout(bookmarkNoticeTimer);
+  bookmarkNotice.value = message;
+  bookmarkNoticeTimer = window.setTimeout(() => {
+    bookmarkNotice.value = "";
+  }, 3200);
+}
+
+async function toggleBookmarkSearch() {
+  if (bookmarkSearchEnabled.value) {
+    aiChat.setBookmarkSearch(false);
+    showBookmarkNotice("书签搜索已关闭");
+    return;
+  }
+
+  const granted = await bookmarkSearch.ensurePermission();
+  aiChat.setBookmarkSearch(granted);
+  showBookmarkNotice(granted ? "书签搜索已开启" : bookmarkSearch.message.value);
 }
 
 function createConversation() {
@@ -199,7 +235,10 @@ watch(
       return;
     }
 
-    await aiChat.initialize();
+    await Promise.all([aiChat.initialize(), bookmarkSearch.initialize()]);
+    if (aiChat.config.value.bookmarkSearch && !bookmarkSearch.permissionGranted.value) {
+      aiChat.setBookmarkSearch(false);
+    }
     await nextTick();
     scrollEl.value?.scrollTo({ top: scrollEl.value.scrollHeight });
   },
@@ -219,6 +258,10 @@ watch(
     });
   }
 );
+
+onBeforeUnmount(() => {
+  window.clearTimeout(bookmarkNoticeTimer);
+});
 </script>
 
 <template>
@@ -404,6 +447,23 @@ watch(
                         v-model="activeModelId"
                         :models="aiChat.config.value.models"
                       />
+
+                      <button
+                        class="ai-bookmark-switch"
+                        :class="{ 'ai-bookmark-switch--on': bookmarkSearchEnabled }"
+                        type="button"
+                        role="switch"
+                        :aria-checked="bookmarkSearchEnabled"
+                        :disabled="bookmarkSearch.isRequestingPermission.value || props.loading"
+                        :title="bookmarkSearchSwitchTitle"
+                        @click="toggleBookmarkSearch"
+                      >
+                        <span class="ai-bookmark-switch__track">
+                          <span class="ai-bookmark-switch__thumb"></span>
+                        </span>
+                        <span class="ai-bookmark-switch__label">书签搜索</span>
+                      </button>
+                      <span v-if="bookmarkNotice" class="ai-bookmark-notice" :title="bookmarkNotice">{{ bookmarkNotice }}</span>
 
                       <button
                         v-if="activeModelSupportsDeepThinking"
@@ -1024,6 +1084,7 @@ watch(
   gap: 8px;
 }
 
+.ai-bookmark-switch,
 .ai-thinking-switch {
   display: inline-flex;
   align-items: center;
@@ -1035,11 +1096,13 @@ watch(
   font-weight: 760;
 }
 
+.ai-bookmark-switch:disabled,
 .ai-thinking-switch:disabled {
   color: #94a3b8;
   cursor: default;
 }
 
+.ai-bookmark-switch__track,
 .ai-thinking-switch__track {
   position: relative;
   width: 38px;
@@ -1051,6 +1114,7 @@ watch(
   transition: background 160ms ease;
 }
 
+.ai-bookmark-switch__thumb,
 .ai-thinking-switch__thumb {
   position: absolute;
   top: 3px;
@@ -1063,16 +1127,29 @@ watch(
   transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.ai-bookmark-switch--on,
 .ai-thinking-switch--on {
   color: #0f766e;
 }
 
+.ai-bookmark-switch--on .ai-bookmark-switch__track,
 .ai-thinking-switch--on .ai-thinking-switch__track {
   background: linear-gradient(145deg, #2f80ed, #19b58f);
 }
 
+.ai-bookmark-switch--on .ai-bookmark-switch__thumb,
 .ai-thinking-switch--on .ai-thinking-switch__thumb {
   transform: translateX(16px);
+}
+
+.ai-bookmark-notice {
+  min-width: 0;
+  overflow: hidden;
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ai-dialog__abort,
@@ -1188,6 +1265,7 @@ watch(
     max-width: 78%;
   }
 
+  .ai-bookmark-switch__label,
   .ai-thinking-switch__label {
     display: none;
   }

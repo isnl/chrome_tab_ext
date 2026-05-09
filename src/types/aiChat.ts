@@ -11,6 +11,7 @@ export interface AiChatConfig {
   models: AiChatModelConfig[];
   activeModelId: string;
   deepThinking: boolean;
+  bookmarkSearch: boolean;
 }
 
 export type AiChatMessageRole = "user" | "assistant";
@@ -45,5 +46,6 @@ export const DEFAULT_AI_CHAT_MODEL: AiChatModelConfig = {
 export const DEFAULT_AI_CHAT_CONFIG: AiChatConfig = {
   models: [{ ...DEFAULT_AI_CHAT_MODEL }],
   activeModelId: DEFAULT_AI_CHAT_MODEL.id,
-  deepThinking: false
+  deepThinking: false,
+  bookmarkSearch: false
 };

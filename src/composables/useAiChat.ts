@@ -95,7 +95,9 @@ function sanitizeConfig(payload: unknown): AiChatConfig {
   return {
     models,
     activeModelId,
-    deepThinking: typeof payload.deepThinking === "boolean" ? payload.deepThinking : DEFAULT_AI_CHAT_CONFIG.deepThinking
+    deepThinking: typeof payload.deepThinking === "boolean" ? payload.deepThinking : DEFAULT_AI_CHAT_CONFIG.deepThinking,
+    bookmarkSearch:
+      typeof payload.bookmarkSearch === "boolean" ? payload.bookmarkSearch : DEFAULT_AI_CHAT_CONFIG.bookmarkSearch
   };
 }
 
@@ -240,12 +242,17 @@ function createAiChatStore() {
     config.value = {
       models,
       activeModelId,
-      deepThinking: nextConfig.deepThinking && Boolean(models.find((model) => model.id === activeModelId)?.supportsDeepThinking)
+      deepThinking: nextConfig.deepThinking && Boolean(models.find((model) => model.id === activeModelId)?.supportsDeepThinking),
+      bookmarkSearch: nextConfig.bookmarkSearch === true
     };
   }
 
   function setDeepThinking(value: boolean) {
     config.value.deepThinking = value && Boolean(activeModel.value?.supportsDeepThinking);
+  }
+
+  function setBookmarkSearch(value: boolean) {
+    config.value.bookmarkSearch = value;
   }
 
   function setActiveModel(id: string) {
@@ -454,6 +461,7 @@ function createAiChatStore() {
     initialize,
     updateConfig,
     setDeepThinking,
+    setBookmarkSearch,
     setActiveModel,
     requestConversationModal,
     setActiveConversation,

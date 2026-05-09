@@ -10,3 +10,28 @@
 [2m14:57:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ new dependencies optimized: [33mmarkdown-it[32m[39m
 [2m14:57:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ optimized dependencies changed. reloading[39m
 [2m15:02:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/ComponentVisibilityDrawer.vue?vue&type=style&index=0&scoped=e221742c&lang.css, /src/style.css[22m
+[2m12:42:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/style.css, /src/components/dashboard/AiChatSettingsPanel.vue, /src/components/dashboard/DashboardBoard.vue, /src/components/dashboard/AiChatSummaryWidget.vue, /src/components/dashboard/AiChatConversationModal.vue[22m
+[2m12:42:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/style.css, /src/components/dashboard/DashboardBoard.vue, /src/components/dashboard/AiChatSummaryWidget.vue, /src/components/dashboard/AiChatSettingsPanel.vue, /src/components/dashboard/AiChatConversationModal.vue[22m
+[2m12:42:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/style.css, /src/components/dashboard/AiChatSummaryWidget.vue, /src/components/dashboard/AiChatSettingsPanel.vue, /src/components/dashboard/DashboardBoard.vue, /src/components/dashboard/AiChatConversationModal.vue[22m
+[2m12:42:43[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatSettingsPanel.vue, /src/style.css[22m
+[2m12:43:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatSummaryWidget.vue, /src/style.css[22m
+[2m12:44:02[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatSummaryWidget.vue?vue&type=style&index=0&scoped=10b4aa1b&lang.css, /src/style.css[22m
+[2m12:44:18[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatConversationModal.vue, /src/style.css[22m
+[2m12:44:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatConversationModal.vue?vue&type=style&index=0&scoped=447b1118&lang.css, /src/style.css[22m
+[2m12:45:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/style.css, /src/components/dashboard/AiChatSummaryWidget.vue, /src/components/dashboard/AiChatConversationModal.vue[22m
+[2m13:29:50[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/style.css, /src/components/dashboard/AiChatSummaryWidget.vue, /src/components/dashboard/AiChatConversationModal.vue[22m
+[2m13:30:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatSummaryWidget.vue, /src/style.css[22m
+[2m13:30:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatSummaryWidget.vue, /src/style.css[22m
+[2m13:30:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatSummaryWidget.vue?vue&type=style&index=0&scoped=10b4aa1b&lang.css, /src/style.css[22m
+[2m13:30:44[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatConversationModal.vue, /src/style.css[22m
+[2m13:30:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatConversationModal.vue, /src/style.css[22m
+[2m13:30:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatConversationModal.vue, /src/style.css[22m
+[2m13:31:05[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatConversationModal.vue?vue&type=style&index=0&scoped=447b1118&lang.css, /src/style.css[22m
+[2m13:31:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatSummaryWidget.vue, /src/style.css[22m
+[2m13:31:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatConversationModal.vue, /src/style.css[22m
+[2m14:41:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/style.css, /src/components/dashboard/AiChatSummaryWidget.vue, /src/components/dashboard/AiChatConversationModal.vue[22m
+[2m16:38:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/style.css, /src/components/dashboard/AiChatSummaryWidget.vue, /src/components/dashboard/AiChatConversationModal.vue[22m
+[2m16:38:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatSummaryWidget.vue, /src/style.css[22m
+[2m16:38:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatSummaryWidget.vue, /src/style.css[22m
+[2m17:13:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/style.css, /src/components/dashboard/AiChatSummaryWidget.vue, /src/components/dashboard/AiChatConversationModal.vue[22m
+[2m17:13:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/dashboard/AiChatSummaryWidget.vue, /src/style.css[22m
