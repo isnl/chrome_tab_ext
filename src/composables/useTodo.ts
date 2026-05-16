@@ -29,6 +29,8 @@ type AddTodoOptions = {
   importance?: TodoImportance;
 };
 
+type UpdateTodoDetailsOptions = AddTodoOptions;
+
 const IMPORTANCE_SORT_RANK: Record<TodoImportance, number> = {
   high: 0,
   medium: 1,
@@ -67,6 +69,13 @@ function isValidTimeString(value: string) {
 
 function normalizeImportance(value: unknown): TodoImportance {
   return value === "high" || value === "medium" || value === "low" ? value : "low";
+}
+
+function normalizeDueInput(options: Pick<AddTodoOptions, "dueDate" | "dueTime">) {
+  const dueDate = options.dueDate && isValidDateString(options.dueDate) ? options.dueDate : undefined;
+  const dueTime = dueDate && options.dueTime && isValidTimeString(options.dueTime) ? options.dueTime : undefined;
+
+  return { dueDate, dueTime };
 }
 
 function parseTodoDate(item: Pick<TodoItem, "dueDate" | "dueTime">) {
@@ -274,8 +283,7 @@ function createTodoStore() {
   function addTodo(text: string, options: AddTodoOptions = {}) {
     if (!text.trim()) return;
 
-    const dueDate = options.dueDate && isValidDateString(options.dueDate) ? options.dueDate : undefined;
-    const dueTime = dueDate && options.dueTime && isValidTimeString(options.dueTime) ? options.dueTime : undefined;
+    const { dueDate, dueTime } = normalizeDueInput(options);
     const maxOrder = items.value.reduce((max, item) => Math.max(max, item.order), -1);
 
     items.value.push({
@@ -285,7 +293,7 @@ function createTodoStore() {
       createdAt: new Date().toISOString(),
       dueDate,
       dueTime,
-      importance: options.importance ?? "low",
+      importance: normalizeImportance(options.importance),
       order: maxOrder + 1
     });
   }
@@ -306,6 +314,16 @@ function createTodoStore() {
     if (item && text.trim()) {
       item.text = text.trim();
     }
+  }
+
+  function updateTodoDetails(id: string, options: UpdateTodoDetailsOptions) {
+    const item = items.value.find((i) => i.id === id);
+    if (!item) return;
+
+    const { dueDate, dueTime } = normalizeDueInput(options);
+    item.dueDate = dueDate;
+    item.dueTime = dueTime;
+    item.importance = options.importance ? normalizeImportance(options.importance) : item.importance;
   }
 
   function reorderTodos(fromId: string, toId: string) {
@@ -355,6 +373,7 @@ function createTodoStore() {
     addTodo,
     toggleTodo,
     editTodo,
+    updateTodoDetails,
     deleteTodo,
     reorderTodos,
     revealPrivacy,

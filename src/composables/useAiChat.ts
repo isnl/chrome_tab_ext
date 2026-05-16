@@ -29,6 +29,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function sanitizeStringList(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  ];
+}
+
 function sanitizeModelConfig(payload: unknown, index = 0): AiChatModelConfig {
   if (!isRecord(payload)) {
     return {
@@ -91,13 +106,20 @@ function sanitizeConfig(payload: unknown): AiChatConfig {
     typeof payload.activeModelId === "string" && models.some((model) => model.id === payload.activeModelId)
       ? payload.activeModelId
       : models[0]?.id ?? DEFAULT_AI_CHAT_MODEL.id;
+  const bookmarkFolderIds = sanitizeStringList(payload.bookmarkFolderIds);
+  const bookmarkSearchScope =
+    payload.bookmarkSearchScope === "custom" || (payload.bookmarkSearchScope !== "all" && bookmarkFolderIds.length)
+      ? "custom"
+      : DEFAULT_AI_CHAT_CONFIG.bookmarkSearchScope;
 
   return {
     models,
     activeModelId,
     deepThinking: typeof payload.deepThinking === "boolean" ? payload.deepThinking : DEFAULT_AI_CHAT_CONFIG.deepThinking,
     bookmarkSearch:
-      typeof payload.bookmarkSearch === "boolean" ? payload.bookmarkSearch : DEFAULT_AI_CHAT_CONFIG.bookmarkSearch
+      typeof payload.bookmarkSearch === "boolean" ? payload.bookmarkSearch : DEFAULT_AI_CHAT_CONFIG.bookmarkSearch,
+    bookmarkSearchScope,
+    bookmarkFolderIds
   };
 }
 
@@ -243,7 +265,9 @@ function createAiChatStore() {
       models,
       activeModelId,
       deepThinking: nextConfig.deepThinking && Boolean(models.find((model) => model.id === activeModelId)?.supportsDeepThinking),
-      bookmarkSearch: nextConfig.bookmarkSearch === true
+      bookmarkSearch: nextConfig.bookmarkSearch === true,
+      bookmarkSearchScope: nextConfig.bookmarkSearchScope === "custom" ? "custom" : "all",
+      bookmarkFolderIds: sanitizeStringList(nextConfig.bookmarkFolderIds)
     };
   }
 
@@ -253,6 +277,14 @@ function createAiChatStore() {
 
   function setBookmarkSearch(value: boolean) {
     config.value.bookmarkSearch = value;
+  }
+
+  function setBookmarkSearchScope(value: AiChatConfig["bookmarkSearchScope"]) {
+    config.value.bookmarkSearchScope = value === "custom" ? "custom" : "all";
+  }
+
+  function setBookmarkFolderIds(ids: string[]) {
+    config.value.bookmarkFolderIds = sanitizeStringList(ids);
   }
 
   function setActiveModel(id: string) {
@@ -462,6 +494,8 @@ function createAiChatStore() {
     updateConfig,
     setDeepThinking,
     setBookmarkSearch,
+    setBookmarkSearchScope,
+    setBookmarkFolderIds,
     setActiveModel,
     requestConversationModal,
     setActiveConversation,

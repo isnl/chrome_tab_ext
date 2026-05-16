@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { useTodo } from "@/composables/useTodo";
 import type { TodoImportance, TodoItem } from "@/types/todo";
 import type { WidgetSize } from "@/types/widget";
 
 import TodoCreateForm from "./TodoCreateForm.vue";
+import TodoDetailsPopover from "./TodoDetailsPopover.vue";
 
 defineProps<{
   size: WidgetSize;
@@ -17,11 +18,24 @@ const editingId = ref<string | null>(null);
 const editText = ref("");
 const editInput = ref<HTMLInputElement | null>(null);
 const deleteConfirmId = ref<string | null>(null);
+const detailEditingId = ref<string | null>(null);
+const detailDraftDate = ref("");
+const detailDraftTime = ref("");
+const detailDraftImportance = ref<TodoImportance>("low");
+const detailPopoverRef = ref<{
+  containsTarget: (target: EventTarget | null) => boolean;
+  updatePosition: () => void;
+} | null>(null);
+const detailAnchorEl = ref<HTMLElement | null>(null);
 
 const activeCount = computed(() => todo.activeItems.value.length);
 const primaryItem = computed(() => todo.activeItems.value[0] ?? null);
 const visibleGroups = computed(() => todo.activeGroups.value.filter((group) => group.todos.length));
 const urgentCount = computed(() => todo.activeItems.value.filter((item) => item.importance === "high").length);
+const detailEditingItem = computed(() => {
+  if (!detailEditingId.value) return null;
+  return todo.items.value.find((item) => item.id === detailEditingId.value) ?? null;
+});
 
 async function startEditing(id: string, text: string) {
   editingId.value = id;
@@ -36,6 +50,55 @@ function finishEditing() {
   }
   editingId.value = null;
   editText.value = "";
+}
+
+function hasTodoDetails(item: TodoItem) {
+  return Boolean(item.dueDate || item.dueTime || item.importance !== "low");
+}
+
+async function openDetailEditor(event: MouseEvent, item: TodoItem) {
+  detailAnchorEl.value = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+  detailEditingId.value = item.id;
+  detailDraftDate.value = item.dueDate ?? "";
+  detailDraftTime.value = item.dueTime ?? "";
+  detailDraftImportance.value = item.importance;
+
+  await nextTick();
+  detailPopoverRef.value?.updatePosition();
+}
+
+function closeDetailEditor() {
+  detailEditingId.value = null;
+  detailAnchorEl.value = null;
+}
+
+function applyDetailDraft() {
+  if (!detailEditingId.value) return;
+
+  todo.updateTodoDetails(detailEditingId.value, {
+    dueDate: detailDraftDate.value || undefined,
+    dueTime: detailDraftDate.value ? detailDraftTime.value || undefined : undefined,
+    importance: detailDraftImportance.value
+  });
+  closeDetailEditor();
+}
+
+function toggleDetailEditor(event: MouseEvent, item: TodoItem) {
+  if (todo.isBlurred.value) return;
+  if (detailEditingId.value === item.id) {
+    applyDetailDraft();
+    return;
+  }
+
+  void openDetailEditor(event, item);
+}
+
+function handleBlurredInteraction(event: Event) {
+  if (!todo.isBlurred.value) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  todo.revealPrivacy();
 }
 
 const draggingId = ref<string | null>(null);
@@ -85,6 +148,40 @@ function resetDeleteConfirm(id: string) {
   }
 }
 
+function handleWindowChange() {
+  if (detailEditingId.value) {
+    detailPopoverRef.value?.updatePosition();
+  }
+}
+
+function handleDocumentPointerDown(event: PointerEvent) {
+  if (!detailEditingId.value) return;
+
+  if (detailPopoverRef.value?.containsTarget(event.target)) {
+    return;
+  }
+
+  applyDetailDraft();
+}
+
+watch(detailDraftDate, (value) => {
+  if (!value) {
+    detailDraftTime.value = "";
+  }
+});
+
+onMounted(() => {
+  window.addEventListener("resize", handleWindowChange);
+  window.addEventListener("scroll", handleWindowChange, true);
+  window.addEventListener("pointerdown", handleDocumentPointerDown, true);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", handleWindowChange);
+  window.removeEventListener("scroll", handleWindowChange, true);
+  window.removeEventListener("pointerdown", handleDocumentPointerDown, true);
+});
+
 function importanceToneClass(importance: TodoImportance) {
   return `todo-tone--${importance}`;
 }
@@ -120,7 +217,7 @@ function itemToneClass(item: TodoItem) {
         <div
           class="todo-blur-wrap min-w-0 flex-1"
           :class="{ 'todo-blur-wrap--blurred': todo.isBlurred.value }"
-          @click="todo.isBlurred.value && todo.revealPrivacy()"
+          @click.capture="handleBlurredInteraction"
         >
           <div v-if="primaryItem" class="todo-preview" :class="itemToneClass(primaryItem)">
             <span class="todo-priority-mark todo-priority-mark--lead" :class="itemToneClass(primaryItem)" :title="todo.getImportanceLabel(primaryItem.importance)" />
@@ -144,7 +241,7 @@ function itemToneClass(item: TodoItem) {
         <div
           class="todo-blur-wrap flex h-full flex-col gap-1.5"
           :class="{ 'todo-blur-wrap--blurred': todo.isBlurred.value }"
-          @click="todo.isBlurred.value && todo.revealPrivacy()"
+          @click.capture="handleBlurredInteraction"
         >
           <TodoCreateForm compact />
 
@@ -176,6 +273,24 @@ function itemToneClass(item: TodoItem) {
                   </template>
                   <template v-else>{{ item.text }}</template>
                 </span>
+                <button
+                  class="todo-details-btn todo-details-btn--compact"
+                  :class="{
+                    'todo-details-btn--filled': hasTodoDetails(item),
+                    'todo-details-btn--active': detailEditingId === item.id
+                  }"
+                  type="button"
+                  aria-label="编辑待办时间"
+                  :title="todo.formatDueLabel(item) || todo.getImportanceLabel(item.importance)"
+                  @pointerdown.stop
+                  @click.stop="toggleDetailEditor($event, item)"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="8.5" />
+                    <line x1="12" y1="7" x2="12" y2="12.3" />
+                    <line x1="12" y1="12.3" x2="15.5" y2="14.2" />
+                  </svg>
+                </button>
               </div>
             </section>
           </div>
@@ -194,7 +309,7 @@ function itemToneClass(item: TodoItem) {
         <div
           class="todo-blur-wrap flex h-full gap-3"
           :class="{ 'todo-blur-wrap--blurred': todo.isBlurred.value }"
-          @click="todo.isBlurred.value && todo.revealPrivacy()"
+          @click.capture="handleBlurredInteraction"
         >
           <div class="flex min-w-0 flex-1 flex-col gap-2 overflow-y-auto">
             <TodoCreateForm />
@@ -240,6 +355,24 @@ function itemToneClass(item: TodoItem) {
                       <p v-if="todo.formatDueLabel(item)" class="todo-row__meta">{{ todo.formatDueLabel(item) }}</p>
                     </template>
                   </div>
+                  <button
+                    class="todo-details-btn"
+                    :class="{
+                      'todo-details-btn--filled': hasTodoDetails(item),
+                      'todo-details-btn--active': detailEditingId === item.id
+                    }"
+                    type="button"
+                    aria-label="编辑待办时间"
+                    :title="todo.formatDueLabel(item) || todo.getImportanceLabel(item.importance)"
+                    @pointerdown.stop
+                    @click.stop="toggleDetailEditor($event, item)"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="8.5" />
+                      <line x1="12" y1="7" x2="12" y2="12.3" />
+                      <line x1="12" y1="12.3" x2="15.5" y2="14.2" />
+                    </svg>
+                  </button>
                   <button
                     class="todo-delete-btn"
                     :class="{ 'todo-delete-btn--confirm': deleteConfirmId === item.id }"
@@ -291,7 +424,7 @@ function itemToneClass(item: TodoItem) {
         <div
           class="todo-blur-wrap flex h-full flex-col gap-2 overflow-y-auto"
           :class="{ 'todo-blur-wrap--blurred': todo.isBlurred.value }"
-          @click="todo.isBlurred.value && todo.revealPrivacy()"
+          @click.capture="handleBlurredInteraction"
         >
           <TodoCreateForm />
 
@@ -336,6 +469,24 @@ function itemToneClass(item: TodoItem) {
                     <p v-if="todo.formatDueLabel(item)" class="todo-row__meta">{{ todo.formatDueLabel(item) }}</p>
                   </template>
                 </div>
+                <button
+                  class="todo-details-btn"
+                  :class="{
+                    'todo-details-btn--filled': hasTodoDetails(item),
+                    'todo-details-btn--active': detailEditingId === item.id
+                  }"
+                  type="button"
+                  aria-label="编辑待办时间"
+                  :title="todo.formatDueLabel(item) || todo.getImportanceLabel(item.importance)"
+                  @pointerdown.stop
+                  @click.stop="toggleDetailEditor($event, item)"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="8.5" />
+                    <line x1="12" y1="7" x2="12" y2="12.3" />
+                    <line x1="12" y1="12.3" x2="15.5" y2="14.2" />
+                  </svg>
+                </button>
                 <button
                   class="todo-delete-btn opacity-0 group-hover:opacity-100"
                   :class="{ 'todo-delete-btn--confirm': deleteConfirmId === item.id }"
@@ -396,6 +547,18 @@ function itemToneClass(item: TodoItem) {
         </div>
       </div>
     </template>
+
+    <TodoDetailsPopover
+      ref="detailPopoverRef"
+      :open="Boolean(detailEditingItem)"
+      :anchor-el="detailAnchorEl"
+      :compact="size === '2x2'"
+      :z-index="130"
+      v-model:due-date="detailDraftDate"
+      v-model:due-time="detailDraftTime"
+      v-model:importance="detailDraftImportance"
+      @close="closeDetailEditor"
+    />
   </div>
 </template>
 
@@ -621,6 +784,36 @@ function itemToneClass(item: TodoItem) {
   color: #334155;
   font-size: 11px;
   outline: none;
+}
+
+.todo-details-btn {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #cbd5e1;
+  transition: all 160ms ease;
+}
+
+.todo-details-btn:hover,
+.todo-details-btn--filled,
+.todo-details-btn--active {
+  background: var(--todo-accent-soft);
+  color: var(--todo-accent);
+}
+
+.todo-details-btn--active {
+  box-shadow: inset 0 0 0 1px var(--todo-accent-line);
+}
+
+.todo-details-btn--compact {
+  width: 16px;
+  height: 16px;
 }
 
 .todo-check {

@@ -2,7 +2,14 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 
 import MarkdownRenderer from "@/components/common/MarkdownRenderer.vue";
-import { useBookmarkSearch } from "@/composables/useBookmarkSearch";
+import {
+  createBookmarkContextStats,
+  formatTokenCount,
+  useBookmarkSearch,
+  type BookmarkContextStats,
+  type BookmarkFolderOption,
+  type BookmarkSearchSourceItem
+} from "@/composables/useBookmarkSearch";
 import { useAiChat } from "@/composables/useAiChat";
 import type { AiChatConversation } from "@/types/aiChat";
 
@@ -32,7 +39,15 @@ const editingId = ref<string | null>(null);
 const editingTitle = ref("");
 const pendingDeleteId = ref<string | null>(null);
 const bookmarkNotice = ref("");
+const bookmarkContextOpen = ref(false);
+const bookmarkInventoryLoading = ref(false);
+const bookmarkInventoryError = ref("");
+const bookmarkFolders = ref<BookmarkFolderOption[]>([]);
+const bookmarkItems = ref<BookmarkSearchSourceItem[]>([]);
+const bookmarkStats = ref<BookmarkContextStats | null>(null);
+const bookmarkFolderFilter = ref("");
 let bookmarkNoticeTimer = 0;
+let bookmarkInventoryRequestId = 0;
 
 const activeConversation = computed(() => aiChat.activeConversation.value);
 const activeModelId = computed({
@@ -45,6 +60,16 @@ const deepThinkingEnabled = computed({
   set: (value: boolean) => aiChat.setDeepThinking(value)
 });
 const bookmarkSearchEnabled = computed(() => aiChat.config.value.bookmarkSearch);
+const bookmarkSearchScope = computed(() => aiChat.config.value.bookmarkSearchScope);
+const selectedBookmarkFolderIds = computed(() => aiChat.config.value.bookmarkFolderIds);
+const selectedBookmarkFolderIdSet = computed(() => new Set(selectedBookmarkFolderIds.value));
+const activeBookmarkFolderIdSet = computed(() => {
+  if (bookmarkSearchScope.value === "custom") {
+    return selectedBookmarkFolderIdSet.value;
+  }
+
+  return new Set(bookmarkFolders.value.map((folder) => folder.id));
+});
 const bookmarkSearchSwitchTitle = computed(() => {
   if (!bookmarkSearch.supported.value) {
     return "点击查看书签搜索不可用原因";
@@ -55,6 +80,53 @@ const bookmarkSearchSwitchTitle = computed(() => {
   }
 
   return bookmarkSearchEnabled.value ? "关闭书签搜索" : "开启书签搜索";
+});
+const bookmarkContextSummary = computed(() => {
+  if (!bookmarkSearchEnabled.value) {
+    return "书签上下文";
+  }
+
+  if (bookmarkInventoryLoading.value && !bookmarkStats.value) {
+    return "估算中";
+  }
+
+  if (!bookmarkStats.value) {
+    return "估算上下文";
+  }
+
+  return `约 ${formatTokenCount(bookmarkStats.value.estimatedTokens)} tokens`;
+});
+const bookmarkContextDetail = computed(() => {
+  if (bookmarkInventoryError.value) {
+    return bookmarkInventoryError.value;
+  }
+
+  if (!bookmarkStats.value) {
+    return bookmarkInventoryLoading.value ? "正在读取书签目录" : "打开后读取书签目录";
+  }
+
+  const stats = bookmarkStats.value;
+  const scopeText =
+    bookmarkSearchScope.value === "custom"
+      ? `自选 ${stats.selectedFolderCount} 个文件夹`
+      : `全部 ${stats.folderCount} 个文件夹`;
+
+  return `${scopeText}，${stats.includedBookmarks}/${stats.totalBookmarks} 条书签，约 ${formatTokenCount(stats.estimatedTokens)} tokens`;
+});
+const bookmarkContextButtonTitle = computed(() =>
+  bookmarkStats.value
+    ? `书签上下文：${bookmarkContextDetail.value}`
+    : "查看书签上下文占用并选择文件夹"
+);
+const filteredBookmarkFolders = computed(() => {
+  const keyword = bookmarkFolderFilter.value.trim().toLowerCase();
+  if (!keyword) {
+    return bookmarkFolders.value;
+  }
+
+  return bookmarkFolders.value.filter((folder) =>
+    `${folder.title} ${folder.folderPath}`.toLowerCase().includes(keyword)
+  );
 });
 
 const sortedConversations = computed(() =>
@@ -141,9 +213,115 @@ function showBookmarkNotice(message: string) {
   }, 3200);
 }
 
+function bookmarkScopeFolderIds() {
+  return aiChat.config.value.bookmarkSearchScope === "custom" ? aiChat.config.value.bookmarkFolderIds : null;
+}
+
+function updateBookmarkStats(scope = aiChat.config.value.bookmarkSearchScope, folderIds = aiChat.config.value.bookmarkFolderIds) {
+  const selectedFolderIds = scope === "custom" ? folderIds : null;
+  bookmarkStats.value = createBookmarkContextStats(bookmarkItems.value, selectedFolderIds, bookmarkFolders.value.length);
+}
+
+async function refreshBookmarkInventory() {
+  const requestId = bookmarkInventoryRequestId + 1;
+  bookmarkInventoryRequestId = requestId;
+
+  if (!bookmarkSearchEnabled.value) {
+    bookmarkItems.value = [];
+    bookmarkStats.value = null;
+    bookmarkInventoryError.value = "";
+    bookmarkInventoryLoading.value = false;
+    return;
+  }
+
+  bookmarkInventoryLoading.value = true;
+  bookmarkInventoryError.value = "";
+
+  try {
+    await bookmarkSearch.initialize();
+    const granted = bookmarkSearch.permissionGranted.value || (await bookmarkSearch.refreshPermission());
+    if (!granted) {
+      throw new Error("需要授权访问收藏夹后才能估算书签上下文。");
+    }
+
+    const inventory = await bookmarkSearch.loadBookmarkInventory(bookmarkScopeFolderIds());
+    if (requestId !== bookmarkInventoryRequestId) {
+      return;
+    }
+
+    bookmarkFolders.value = inventory.folders;
+    bookmarkItems.value = inventory.items;
+    bookmarkStats.value = inventory.stats;
+  } catch (error) {
+    if (requestId !== bookmarkInventoryRequestId) {
+      return;
+    }
+
+    bookmarkInventoryError.value = error instanceof Error ? error.message : "书签上下文估算失败。";
+    bookmarkStats.value = null;
+  } finally {
+    if (requestId === bookmarkInventoryRequestId) {
+      bookmarkInventoryLoading.value = false;
+    }
+  }
+}
+
+function toggleBookmarkContextPanel() {
+  if (!bookmarkSearchEnabled.value) {
+    return;
+  }
+
+  bookmarkContextOpen.value = !bookmarkContextOpen.value;
+  if (bookmarkContextOpen.value) {
+    void refreshBookmarkInventory();
+  }
+}
+
+function setBookmarkScope(scope: "all" | "custom") {
+  let nextFolderIds = selectedBookmarkFolderIds.value;
+
+  if (scope === "custom" && bookmarkSearchScope.value !== "custom" && !selectedBookmarkFolderIds.value.length) {
+    nextFolderIds = bookmarkFolders.value.map((folder) => folder.id);
+    aiChat.setBookmarkFolderIds(nextFolderIds);
+  }
+
+  aiChat.setBookmarkSearchScope(scope);
+  updateBookmarkStats(scope, nextFolderIds);
+}
+
+function toggleBookmarkFolder(folderId: string) {
+  const currentIds =
+    bookmarkSearchScope.value === "custom"
+      ? selectedBookmarkFolderIds.value
+      : bookmarkFolders.value.map((folder) => folder.id);
+  const nextIds = currentIds.includes(folderId)
+    ? currentIds.filter((id) => id !== folderId)
+    : [...currentIds, folderId];
+
+  aiChat.setBookmarkSearchScope("custom");
+  aiChat.setBookmarkFolderIds(nextIds);
+  updateBookmarkStats("custom", nextIds);
+}
+
+function selectAllBookmarkFolders() {
+  const nextIds = bookmarkFolders.value.map((folder) => folder.id);
+  aiChat.setBookmarkSearchScope("custom");
+  aiChat.setBookmarkFolderIds(nextIds);
+  updateBookmarkStats("custom", nextIds);
+}
+
+function invertBookmarkFolderSelection() {
+  const activeIds = activeBookmarkFolderIdSet.value;
+  const nextIds = bookmarkFolders.value.map((folder) => folder.id).filter((id) => !activeIds.has(id));
+  aiChat.setBookmarkSearchScope("custom");
+  aiChat.setBookmarkFolderIds(nextIds);
+  updateBookmarkStats("custom", nextIds);
+}
+
 async function toggleBookmarkSearch() {
   if (bookmarkSearchEnabled.value) {
     aiChat.setBookmarkSearch(false);
+    bookmarkContextOpen.value = false;
     showBookmarkNotice("书签搜索已关闭");
     return;
   }
@@ -151,6 +329,9 @@ async function toggleBookmarkSearch() {
   const granted = await bookmarkSearch.ensurePermission();
   aiChat.setBookmarkSearch(granted);
   showBookmarkNotice(granted ? "书签搜索已开启" : bookmarkSearch.message.value);
+  if (granted) {
+    bookmarkContextOpen.value = true;
+  }
 }
 
 function createConversation() {
@@ -243,6 +424,34 @@ watch(
     scrollEl.value?.scrollTo({ top: scrollEl.value.scrollHeight });
   },
   { immediate: true }
+);
+
+watch(
+  () => [props.open, bookmarkSearchEnabled.value],
+  () => {
+    if (props.open && bookmarkSearchEnabled.value) {
+      void refreshBookmarkInventory();
+      return;
+    }
+
+    bookmarkContextOpen.value = false;
+  }
+);
+
+watch(
+  () => [aiChat.config.value.bookmarkSearchScope, aiChat.config.value.bookmarkFolderIds.join("|")],
+  () => {
+    if (!props.open || !bookmarkSearchEnabled.value) {
+      return;
+    }
+
+    if (bookmarkItems.value.length || bookmarkFolders.value.length || bookmarkStats.value) {
+      updateBookmarkStats();
+      return;
+    }
+
+    void refreshBookmarkInventory();
+  }
 );
 
 watch(
@@ -441,6 +650,95 @@ onBeforeUnmount(() => {
                     @keydown="handleKeydown"
                   ></textarea>
 
+                  <Transition
+                    enter-active-class="transition duration-150 ease-out"
+                    enter-from-class="opacity-0 -translate-y-1"
+                    enter-to-class="opacity-100 translate-y-0"
+                    leave-active-class="transition duration-100 ease-in"
+                    leave-from-class="opacity-100 translate-y-0"
+                    leave-to-class="opacity-0 -translate-y-1"
+                  >
+                    <section v-if="bookmarkContextOpen && bookmarkSearchEnabled" class="ai-bookmark-panel">
+                      <header class="ai-bookmark-panel__header">
+                        <div>
+                          <p class="ai-bookmark-panel__title">书签上下文</p>
+                          <p class="ai-bookmark-panel__meta">{{ bookmarkContextDetail }}</p>
+                        </div>
+
+                        <span v-if="bookmarkInventoryLoading" class="ai-bookmark-panel__loading"></span>
+                      </header>
+
+                      <div class="ai-bookmark-panel__modes">
+                        <button
+                          class="ai-bookmark-panel__mode"
+                          :class="{ 'ai-bookmark-panel__mode--active': bookmarkSearchScope === 'all' }"
+                          type="button"
+                          @click="setBookmarkScope('all')"
+                        >
+                          全部文件夹
+                        </button>
+                        <button
+                          class="ai-bookmark-panel__mode"
+                          :class="{ 'ai-bookmark-panel__mode--active': bookmarkSearchScope === 'custom' }"
+                          type="button"
+                          @click="setBookmarkScope('custom')"
+                        >
+                          自选文件夹
+                        </button>
+                      </div>
+
+                      <div class="ai-bookmark-panel__actions">
+                        <button
+                          class="ai-bookmark-panel__action"
+                          type="button"
+                          :disabled="!bookmarkFolders.length"
+                          @click="selectAllBookmarkFolders"
+                        >
+                          全选
+                        </button>
+                        <button
+                          class="ai-bookmark-panel__action"
+                          type="button"
+                          :disabled="!bookmarkFolders.length"
+                          @click="invertBookmarkFolderSelection"
+                        >
+                          反选
+                        </button>
+                      </div>
+
+                      <label class="ai-bookmark-panel__search">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                        </svg>
+                        <input v-model="bookmarkFolderFilter" type="search" placeholder="筛选书签文件夹" />
+                      </label>
+
+                      <p v-if="bookmarkInventoryError" class="ai-bookmark-panel__error">{{ bookmarkInventoryError }}</p>
+
+                      <div v-else class="ai-bookmark-panel__folders scroll-soft">
+                        <label
+                          v-for="folder in filteredBookmarkFolders"
+                          :key="folder.id"
+                          class="ai-bookmark-folder"
+                          :style="{ paddingLeft: `${7 + folder.depth * 12}px` }"
+                        >
+                          <input
+                            type="checkbox"
+                            :checked="activeBookmarkFolderIdSet.has(folder.id)"
+                            @change="toggleBookmarkFolder(folder.id)"
+                          />
+                          <span class="ai-bookmark-folder__name">{{ folder.title }}</span>
+                          <span class="ai-bookmark-folder__path">{{ folder.folderPath }}</span>
+                          <span class="ai-bookmark-folder__count">{{ folder.bookmarkCount }}</span>
+                        </label>
+
+                        <p v-if="!bookmarkInventoryLoading && !filteredBookmarkFolders.length" class="ai-bookmark-panel__empty">
+                          没有匹配的书签文件夹
+                        </p>
+                      </div>
+                    </section>
+                  </Transition>
+
                   <div class="ai-dialog__tools">
                     <div class="ai-dialog__switches">
                       <AiModelPicker
@@ -464,6 +762,21 @@ onBeforeUnmount(() => {
                         <span class="ai-bookmark-switch__label">书签搜索</span>
                       </button>
                       <span v-if="bookmarkNotice" class="ai-bookmark-notice" :title="bookmarkNotice">{{ bookmarkNotice }}</span>
+
+                      <button
+                        v-if="bookmarkSearchEnabled"
+                        class="ai-bookmark-context"
+                        :class="{ 'ai-bookmark-context--open': bookmarkContextOpen }"
+                        type="button"
+                        :title="bookmarkContextButtonTitle"
+                        @click="toggleBookmarkContextPanel"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M4 5h6l2 2h8v12H4z"/>
+                          <path d="M4 10h16"/>
+                        </svg>
+                        <span>{{ bookmarkContextSummary }}</span>
+                      </button>
 
                       <button
                         v-if="activeModelSupportsDeepThinking"
@@ -1150,6 +1463,249 @@ onBeforeUnmount(() => {
   font-weight: 720;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ai-bookmark-context {
+  display: inline-flex;
+  max-width: 180px;
+  height: 24px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(20, 184, 166, 0.14);
+  border-radius: 999px;
+  background: rgba(240, 253, 250, 0.78);
+  padding: 0 8px;
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 760;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.ai-bookmark-context svg {
+  flex: 0 0 auto;
+}
+
+.ai-bookmark-context span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-bookmark-context:hover,
+.ai-bookmark-context--open {
+  border-color: rgba(37, 99, 235, 0.22);
+  background: rgba(239, 246, 255, 0.9);
+  color: #2563eb;
+}
+
+.ai-bookmark-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(240, 253, 250, 0.72));
+  padding: 10px;
+}
+
+.ai-bookmark-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ai-bookmark-panel__title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 790;
+  line-height: 1.2;
+}
+
+.ai-bookmark-panel__meta {
+  margin: 3px 0 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.ai-bookmark-panel__loading {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid rgba(20, 184, 166, 0.18);
+  border-top-color: #14b8a6;
+  animation: ai-settings-spin 0.7s linear infinite;
+}
+
+.ai-bookmark-panel__modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.ai-bookmark-panel__mode {
+  height: 30px;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #475569;
+  font-size: 11px;
+  font-weight: 760;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.ai-bookmark-panel__mode--active {
+  border-color: rgba(20, 184, 166, 0.24);
+  background: rgba(20, 184, 166, 0.1);
+  color: #0f766e;
+}
+
+.ai-bookmark-panel__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ai-bookmark-panel__action {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  border-radius: 10px;
+  background: rgba(239, 246, 255, 0.72);
+  padding: 0 11px;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 760;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.ai-bookmark-panel__action:hover:not(:disabled) {
+  border-color: rgba(37, 99, 235, 0.22);
+  background: rgba(219, 234, 254, 0.88);
+}
+
+.ai-bookmark-panel__action:disabled {
+  color: #94a3b8;
+  cursor: default;
+  background: rgba(241, 245, 249, 0.72);
+}
+
+.ai-bookmark-panel__search {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0 9px;
+  color: #94a3b8;
+}
+
+.ai-bookmark-panel__search input {
+  min-width: 0;
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 650;
+  outline: none;
+}
+
+.ai-bookmark-panel__search input::placeholder {
+  color: #94a3b8;
+}
+
+.ai-bookmark-panel__folders {
+  display: flex;
+  max-height: 154px;
+  min-height: 58px;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.ai-bookmark-folder {
+  display: grid;
+  grid-template-columns: 17px minmax(88px, 0.9fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  border-radius: 10px;
+  padding: 5px 7px;
+  color: #334155;
+  transition: background 120ms ease;
+}
+
+.ai-bookmark-folder:hover {
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.ai-bookmark-folder input {
+  width: 14px;
+  height: 14px;
+  accent-color: #14b8a6;
+}
+
+.ai-bookmark-folder__name,
+.ai-bookmark-folder__path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-bookmark-folder__name {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.ai-bookmark-folder__path {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ai-bookmark-folder__count {
+  min-width: 24px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  padding: 1px 7px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 780;
+  text-align: center;
+}
+
+.ai-bookmark-panel__error,
+.ai-bookmark-panel__empty {
+  margin: 0;
+  border-radius: 11px;
+  padding: 9px 10px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.ai-bookmark-panel__error {
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+}
+
+.ai-bookmark-panel__empty {
+  background: rgba(15, 23, 42, 0.04);
+  color: #64748b;
+  text-align: center;
 }
 
 .ai-dialog__abort,

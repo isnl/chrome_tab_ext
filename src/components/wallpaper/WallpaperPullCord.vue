@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
+import { useSparkBurst } from "@/composables/useSparkBurst";
 
 const props = withDefaults(defineProps<{
   loading?: boolean;
@@ -28,6 +29,9 @@ const cordStyle = computed(() => ({
 
 const isBusy = computed(() => isPulling.value || props.loading);
 
+const { sparkBursts, triggerSparkBurstFromElement } = useSparkBurst();
+const knobRef = ref<HTMLElement | null>(null);
+
 function clearTimers() {
   if (pullTimer) {
     window.clearTimeout(pullTimer);
@@ -46,6 +50,8 @@ function triggerPull() {
   isDragging.value = false;
   isPulling.value = true;
   pullOffset.value = PULL_TRIGGER_DISTANCE;
+
+  triggerSparkBurstFromElement(knobRef.value, 0.5, 0.5);
 
   pullTimer = window.setTimeout(() => {
     emit("pull");
@@ -134,7 +140,7 @@ onBeforeUnmount(clearTimers);
       <span class="pull-cord__line"></span>
       <span class="pull-cord__glint"></span>
     </span>
-    <span class="pull-cord__knob" aria-hidden="true">
+    <span class="pull-cord__knob" aria-hidden="true" ref="knobRef">
       <svg
         width="15"
         height="15"
@@ -164,6 +170,31 @@ onBeforeUnmount(clearTimers);
       </svg>
     </span>
   </button>
+
+  <Teleport to="body">
+    <div class="component-spark-layer" aria-hidden="true">
+      <span
+        v-for="burst in sparkBursts"
+        :key="burst.id"
+        class="component-spark-burst"
+        :style="{ left: `${burst.x}px`, top: `${burst.y}px` }"
+      >
+        <span
+          v-for="particle in burst.particles"
+          :key="particle.id"
+          class="component-spark"
+          :style="{
+            '--spark-x': `${particle.x}px`,
+            '--spark-y': `${particle.y}px`,
+            '--spark-size': `${particle.size}px`,
+            '--spark-color': particle.color,
+            '--spark-delay': `${particle.delay}ms`,
+            '--spark-rotate': particle.rotate
+          }"
+        ></span>
+      </span>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>

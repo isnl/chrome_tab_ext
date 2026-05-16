@@ -25,6 +25,7 @@ const hasSettings = computed(() =>
 );
 
 const hasHistory = computed(() => props.widgetId === "todo" || props.widgetId === "aiChat");
+const showSizeOptions = computed(() => props.widgetId !== "aiChat");
 
 const settingsLabel = computed(() => {
   switch (props.widgetId) {
@@ -43,8 +44,10 @@ const historyLabel = computed(() => (props.widgetId === "aiChat" ? "历史对话
 const menuStyle = computed(() => {
   const width = 200;
   const itemHeight = 38;
-  const extraHeight = (hasSettings.value ? 48 : 0) + (hasHistory.value ? 48 : 0);
-  const height = 52 + props.sizes.length * itemHeight + extraHeight;
+  const sizeHeight = showSizeOptions.value ? props.sizes.length * itemHeight : 0;
+  const actionCount = (hasSettings.value ? 1 : 0) + (hasHistory.value ? 1 : 0);
+  const dividerHeight = showSizeOptions.value && actionCount ? 9 : 0;
+  const height = 52 + sizeHeight + actionCount * itemHeight + dividerHeight;
   const left = Math.min(props.x, window.innerWidth - width - 12);
   const top = Math.min(props.y, window.innerHeight - height - 12);
 
@@ -116,7 +119,7 @@ onBeforeUnmount(() => {
           <p class="context-menu-title">{{ title }}</p>
 
           <!-- size options -->
-          <div class="context-menu-group">
+          <div v-if="showSizeOptions" class="context-menu-group">
             <button
               v-for="size in sizes"
               :key="size"
@@ -134,10 +137,10 @@ onBeforeUnmount(() => {
             </button>
           </div>
 
-          <!-- settings -->
-          <div v-if="hasSettings" class="context-menu-divider"></div>
-          <div v-if="hasSettings" class="context-menu-group">
+          <div v-if="showSizeOptions && (hasSettings || hasHistory)" class="context-menu-divider"></div>
+          <div v-if="hasSettings || hasHistory" class="context-menu-group">
             <button
+              v-if="hasSettings"
               class="context-menu-btn"
               type="button"
               @click="emit('settings'); emit('close')"
@@ -148,12 +151,8 @@ onBeforeUnmount(() => {
                 <circle cx="12" cy="12" r="3"/>
               </svg>
             </button>
-          </div>
-
-          <!-- history -->
-          <div v-if="hasHistory" class="context-menu-divider"></div>
-          <div v-if="hasHistory" class="context-menu-group">
             <button
+              v-if="hasHistory"
               class="context-menu-btn"
               type="button"
               @click="emit('history'); emit('close')"

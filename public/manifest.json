@@ -4,6 +4,7 @@
   "short_name": "晴窗",
   "description": "一个清爽的新标签页，集合搜索、天气、日历和常用网站。",
   "version": "0.2.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxe16WGAyw77pxc7+bf7x3p9NfeF3R+4CKzexG/peBwsSD45BwTzyf88um43b5C8i7docGpstFMTLq1Z4C12xjlntB0vsJZjxpbKzXRQE3LZCCu/J4Z20TQAko17KxAkQ8UG40QPzVNM0jUNcMl1y1C3YMRvdN2kGmBGWbUWnsLKTsLnaUT6b52/KFZGcvuw8QsZShdX6B9+k+CNYBu8J+B6Eub2Q1WV/Hir/vtRKLsJ7Y59Smmx6pezP8UUmubEdVfHArWe/37VYjoI4sUI8g3zR/zEfkX21fto+vmUzZ5Q/akQxf6FJd+rpbXX+b/gkW42LuMLoTSB3sCjs5NnhtQIDAQAB",
   "permissions": ["storage", "favicon"],
   "optional_permissions": ["history", "bookmarks"],
   "icons": {
