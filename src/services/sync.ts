@@ -25,6 +25,11 @@ async function request<T = unknown>(
   options: RequestInit = {}
 ): Promise<{ success: boolean; data?: T; error?: string }> {
   const token = await getToken();
+
+  if (!token && !path.includes("/auth/login")) {
+    return { success: false, error: "Not logged in" };
+  }
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),

@@ -147,6 +147,7 @@ function createDashboardStore() {
   const widgets = ref<DashboardWidgetState[]>(DEFAULT_DASHBOARD_LAYOUT.map((item) => ({ ...item })));
   const widgetVisibility = ref<DashboardWidgetVisibility>(createDefaultVisibility());
   const isHydrated = ref(false);
+  let isSyncing = false;
   let hydrationPromise: Promise<void> | null = null;
 
   async function initialize() {
@@ -168,13 +169,14 @@ function createDashboardStore() {
               col: item.col,
               row: item.row
             }));
+            isSyncing = true;
             widgets.value = sanitizeLayout(remoteWidgets);
-            // visibility from remote
             const visMap: Record<string, boolean> = {};
             for (const item of result.data as any[]) {
               visMap[item.id] = item.visible !== false;
             }
             widgetVisibility.value = sanitizeVisibility(visMap);
+            isSyncing = false;
             isHydrated.value = true;
             return;
           }
@@ -242,8 +244,8 @@ function createDashboardStore() {
     widgets.value = sorted.map((item, index) => ({ ...item, order: index }));
   }
 
-  function saveDashboardToApi() {
-    if (!isLoggedIn()) return;
+  async function saveDashboardToApi() {
+    if (!(await isLoggedIn())) return;
     const payload = widgets.value.map((item) => ({
       id: item.id,
       size: item.size,
@@ -258,7 +260,7 @@ function createDashboardStore() {
   watch(
     widgets,
     (value) => {
-      if (!isHydrated.value) {
+      if (!isHydrated.value || isSyncing) {
         return;
       }
 
@@ -274,7 +276,7 @@ function createDashboardStore() {
   watch(
     widgetVisibility,
     (value) => {
-      if (!isHydrated.value) {
+      if (!isHydrated.value || isSyncing) {
         return;
       }
 
