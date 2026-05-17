@@ -1,6 +1,7 @@
-import { computed, ref, watch } from "vue";
+import { computed, ref } from "vue";
 
 import { storageGet, storageSet } from "@/services/storage";
+import { countdowns as countdownsApi, isLoggedIn } from "@/services/sync";
 import type { CountdownItem } from "@/types/countdown";
 
 const STORAGE_KEY = "countdown.items";
@@ -33,6 +34,21 @@ function createCountdownStore() {
   const isHydrated = ref(false);
 
   async function initialize() {
+    const loggedIn = await isLoggedIn();
+
+    if (loggedIn) {
+      try {
+        const result = await countdownsApi.list();
+        if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+          items.value = result.data as unknown as CountdownItem[];
+          isHydrated.value = true;
+          return;
+        }
+      } catch {
+        // fall through to local storage
+      }
+    }
+
     const stored = await storageGet<Record<string, unknown>>({ [STORAGE_KEY]: null });
     const raw = stored[STORAGE_KEY];
 
@@ -45,14 +61,10 @@ function createCountdownStore() {
     isHydrated.value = true;
   }
 
-  watch(
-    items,
-    (value) => {
-      if (!isHydrated.value) return;
-      void storageSet({ [STORAGE_KEY]: JSON.parse(JSON.stringify(value)) });
-    },
-    { deep: true }
-  );
+  function persistLocal() {
+    if (!isHydrated.value) return;
+    void storageSet({ [STORAGE_KEY]: JSON.parse(JSON.stringify(items.value)) });
+  }
 
   const visibleItems = computed(() => {
     const now = new Date();
@@ -72,7 +84,11 @@ function createCountdownStore() {
 
   function toggleItem(id: string) {
     const item = items.value.find((i) => i.id === id);
-    if (item) item.enabled = !item.enabled;
+    if (item) {
+      item.enabled = !item.enabled;
+      persistLocal();
+      void countdownsApi.update(id, item);
+    }
   }
 
   function reorderItems(fromIndex: number, toIndex: number) {
@@ -81,21 +97,27 @@ function createCountdownStore() {
     if (!moved) return;
     sorted.splice(toIndex, 0, moved);
     items.value = sorted.map((item, index) => ({ ...item, order: index }));
+    persistLocal();
   }
 
   function addItem(label: string, targetDate: string) {
-    items.value.push({
+    const newItem: CountdownItem = {
       id: generateId(),
       label,
       targetDate,
       enabled: true,
       order: items.value.length,
       isBuiltIn: false
-    });
+    };
+    items.value.push(newItem);
+    persistLocal();
+    void countdownsApi.create(newItem);
   }
 
   function removeItem(id: string) {
     items.value = items.value.filter((i) => i.id !== id);
+    persistLocal();
+    void countdownsApi.delete(id);
   }
 
   function getDaysLeft(item: CountdownItem): number {

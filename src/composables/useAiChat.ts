@@ -2,6 +2,7 @@ import { computed, ref, toRaw, watch } from "vue";
 
 import { testAiChatConnection } from "@/services/aiChat";
 import { storageGet, storageSet } from "@/services/storage";
+import { conversations as conversationsApi, settings as settingsApi, isLoggedIn } from "@/services/sync";
 import {
   DEFAULT_AI_CHAT_CONFIG,
   DEFAULT_AI_CHAT_MODEL,
@@ -236,7 +237,22 @@ function createAiChatStore() {
       });
 
       config.value = sanitizeConfig(stored[CONFIG_STORAGE_KEY]);
-      conversations.value = sanitizeConversations(stored[CONVERSATIONS_STORAGE_KEY]);
+
+      const loggedIn = await isLoggedIn();
+      if (loggedIn) {
+        try {
+          const result = await conversationsApi.list();
+          if (result.success && Array.isArray(result.data)) {
+            conversations.value = sanitizeConversations(result.data);
+          } else {
+            conversations.value = sanitizeConversations(stored[CONVERSATIONS_STORAGE_KEY]);
+          }
+        } catch {
+          conversations.value = sanitizeConversations(stored[CONVERSATIONS_STORAGE_KEY]);
+        }
+      } else {
+        conversations.value = sanitizeConversations(stored[CONVERSATIONS_STORAGE_KEY]);
+      }
 
       const storedActiveId =
         typeof stored[ACTIVE_CONVERSATION_STORAGE_KEY] === "string"
@@ -325,6 +341,7 @@ function createAiChatStore() {
 
     conversations.value = [conversation, ...conversations.value];
     activeConversationId.value = conversation.id;
+    void conversationsApi.create(conversation);
     return conversation;
   }
 
@@ -336,6 +353,8 @@ function createAiChatStore() {
       activeConversationId.value =
         conversations.value[Math.max(0, previousIndex - 1)]?.id ?? conversations.value[0]?.id ?? null;
     }
+
+    void conversationsApi.delete(id);
   }
 
   function renameConversation(id: string, title: string) {
@@ -453,12 +472,20 @@ function createAiChatStore() {
 
     window.clearTimeout(conversationSaveTimer);
     conversationSaveTimer = window.setTimeout(() => {
+      const cloned = cloneConversations(conversations.value);
       storageSet({
-        [CONVERSATIONS_STORAGE_KEY]: cloneConversations(conversations.value),
+        [CONVERSATIONS_STORAGE_KEY]: cloned,
         [ACTIVE_CONVERSATION_STORAGE_KEY]: activeConversationId.value
       }).catch((error) => {
         console.warn("[ai-chat] 对话记录保存失败:", error);
       });
+
+      // Push active conversation to API
+      const active = conversations.value.find((c) => c.id === activeConversationId.value);
+      if (active) {
+        void conversationsApi.update(active.id, active);
+      }
+      void settingsApi.set("ai-chat.activeConversationId", activeConversationId.value);
     }, 180);
   }
 

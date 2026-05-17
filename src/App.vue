@@ -3,12 +3,16 @@ import { computed, onMounted, ref, watch } from "vue";
 
 import ComponentVisibilityDrawer from "@/components/dashboard/ComponentVisibilityDrawer.vue";
 import DashboardBoard from "@/components/dashboard/DashboardBoard.vue";
+import SyncSettingsPanel from "@/components/dashboard/SyncSettingsPanel.vue";
 import SearchBar from "@/components/search/StickySearchBar.vue";
 import WallpaperPullCord from "@/components/wallpaper/WallpaperPullCord.vue";
+import { useSync } from "@/composables/useSync";
 import { useWallpaper } from "@/composables/useWallpaper";
 
 const wallpaper = useWallpaper();
+const sync = useSync();
 const settingsDrawerOpen = ref(false);
+const syncPanelOpen = ref(false);
 
 // Two-layer crossfade
 const layerA = ref<string | null>(null);
@@ -84,6 +88,22 @@ function handlePull() {
 
           <button
             class="component-settings-trigger"
+            :class="{ 'component-settings-trigger--active': syncPanelOpen }"
+            type="button"
+            aria-label="账号与同步"
+            title="账号与同步"
+            @click="syncPanelOpen = true"
+          >
+            <svg v-if="sync.isLoggedIn.value" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/>
+            </svg>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </button>
+
+          <button
+            class="component-settings-trigger"
             :class="{ 'component-settings-trigger--active': settingsDrawerOpen }"
             type="button"
             aria-controls="component-visibility-drawer"
@@ -111,6 +131,11 @@ function handlePull() {
   <ComponentVisibilityDrawer
     :open="settingsDrawerOpen"
     @close="settingsDrawerOpen = false"
+  />
+
+  <SyncSettingsPanel
+    :open="syncPanelOpen"
+    @close="syncPanelOpen = false"
   />
 </template>
 

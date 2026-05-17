@@ -1,6 +1,7 @@
 import { computed, ref, toRaw, watch } from "vue";
 
 import { storageGet, storageSet } from "@/services/storage";
+import { dashboard as dashboardApi, isLoggedIn } from "@/services/sync";
 import {
   DASHBOARD_WIDGET_DEFINITIONS,
   DEFAULT_DASHBOARD_LAYOUT,
@@ -154,6 +155,34 @@ function createDashboardStore() {
     }
 
     hydrationPromise = (async () => {
+      const loggedIn = await isLoggedIn();
+
+      if (loggedIn) {
+        try {
+          const result = await dashboardApi.get();
+          if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+            const remoteWidgets = result.data.map((item: any) => ({
+              id: item.id,
+              size: item.size,
+              order: item.order,
+              col: item.col,
+              row: item.row
+            }));
+            widgets.value = sanitizeLayout(remoteWidgets);
+            // visibility from remote
+            const visMap: Record<string, boolean> = {};
+            for (const item of result.data as any[]) {
+              visMap[item.id] = item.visible !== false;
+            }
+            widgetVisibility.value = sanitizeVisibility(visMap);
+            isHydrated.value = true;
+            return;
+          }
+        } catch {
+          // fall through to local storage
+        }
+      }
+
       const stored = await storageGet<Record<string, unknown>>({
         [STORAGE_KEY]: null,
         [VISIBILITY_STORAGE_KEY]: null
@@ -213,6 +242,19 @@ function createDashboardStore() {
     widgets.value = sorted.map((item, index) => ({ ...item, order: index }));
   }
 
+  function saveDashboardToApi() {
+    if (!isLoggedIn()) return;
+    const payload = widgets.value.map((item) => ({
+      id: item.id,
+      size: item.size,
+      order: item.order,
+      col: item.col,
+      row: item.row,
+      visible: widgetVisibility.value[item.id] !== false
+    }));
+    void dashboardApi.save(payload);
+  }
+
   watch(
     widgets,
     (value) => {
@@ -224,6 +266,7 @@ function createDashboardStore() {
       storageSet({ [STORAGE_KEY]: plain }).catch((error) => {
         console.warn("[dashboard] 布局保存失败:", error);
       });
+      saveDashboardToApi();
     },
     { deep: true }
   );
@@ -238,6 +281,7 @@ function createDashboardStore() {
       storageSet({ [VISIBILITY_STORAGE_KEY]: cloneVisibility(value) }).catch((error) => {
         console.warn("[dashboard] 组件显示状态保存失败:", error);
       });
+      saveDashboardToApi();
     },
     { deep: true }
   );

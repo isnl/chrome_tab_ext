@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 
 import { storageGet, storageSet } from "@/services/storage";
+import { settings as settingsApi } from "@/services/sync";
 
 const STORAGE_KEY = "clock.hour12";
 
@@ -16,6 +17,7 @@ function createClockStore() {
   async function toggleFormat() {
     hour12.value = !hour12.value;
     await storageSet({ [STORAGE_KEY]: hour12.value });
+    void settingsApi.set("clock.hour12", hour12.value);
   }
 
   const dateLabel = computed(() =>

@@ -1,6 +1,8 @@
-import { computed, ref, watch } from "vue";
+import { computed, ref } from "vue";
 
 import { storageGet, storageSet } from "@/services/storage";
+import { todos as todosApi, settings as settingsApi } from "@/services/sync";
+import { isLoggedIn } from "@/services/sync";
 import type { TodoImportance, TodoItem, TodoTimeGroup } from "@/types/todo";
 
 const ITEMS_KEY = "todo.items";
@@ -217,6 +219,21 @@ function createTodoStore() {
   const isBlurred = computed(() => privacyModeEnabled.value && !isPrivacyRevealed.value);
 
   async function initialize() {
+    const loggedIn = await isLoggedIn();
+
+    if (loggedIn) {
+      try {
+        const result = await todosApi.list();
+        if (result.success && Array.isArray(result.data)) {
+          items.value = result.data.map(sanitizeTodo).filter((item): item is TodoItem => Boolean(item));
+          isHydrated.value = true;
+          return;
+        }
+      } catch {
+        // fall through to local storage
+      }
+    }
+
     const stored = await storageGet<Record<string, unknown>>({
       [ITEMS_KEY]: null,
       [SETTINGS_KEY]: null
@@ -235,14 +252,10 @@ function createTodoStore() {
     isHydrated.value = true;
   }
 
-  watch(
-    items,
-    (value) => {
-      if (!isHydrated.value) return;
-      void storageSet({ [ITEMS_KEY]: JSON.parse(JSON.stringify(value)) });
-    },
-    { deep: true }
-  );
+  function persistLocal() {
+    if (!isHydrated.value) return;
+    void storageSet({ [ITEMS_KEY]: JSON.parse(JSON.stringify(items.value)) });
+  }
 
   const activeItems = computed(() => items.value.filter((item) => !item.completed).sort(compareTodos));
   const completedItems = computed(() => items.value.filter((item) => item.completed).sort(compareCompletedTodos));
@@ -286,7 +299,7 @@ function createTodoStore() {
     const { dueDate, dueTime } = normalizeDueInput(options);
     const maxOrder = items.value.reduce((max, item) => Math.max(max, item.order), -1);
 
-    items.value.push({
+    const newItem: TodoItem = {
       id: generateId(),
       text: text.trim(),
       completed: false,
@@ -295,7 +308,11 @@ function createTodoStore() {
       dueTime,
       importance: normalizeImportance(options.importance),
       order: maxOrder + 1
-    });
+    };
+
+    items.value.push(newItem);
+    persistLocal();
+    void todosApi.create(newItem);
   }
 
   function toggleTodo(id: string) {
@@ -303,16 +320,22 @@ function createTodoStore() {
     if (!item) return;
     item.completed = !item.completed;
     item.completedAt = item.completed ? new Date().toISOString() : undefined;
+    persistLocal();
+    void todosApi.update(id, item);
   }
 
   function deleteTodo(id: string) {
     items.value = items.value.filter((i) => i.id !== id);
+    persistLocal();
+    void todosApi.delete(id);
   }
 
   function editTodo(id: string, text: string) {
     const item = items.value.find((i) => i.id === id);
     if (item && text.trim()) {
       item.text = text.trim();
+      persistLocal();
+      void todosApi.update(id, item);
     }
   }
 
@@ -324,6 +347,8 @@ function createTodoStore() {
     item.dueDate = dueDate;
     item.dueTime = dueTime;
     item.importance = options.importance ? normalizeImportance(options.importance) : item.importance;
+    persistLocal();
+    void todosApi.update(id, item);
   }
 
   function reorderTodos(fromId: string, toId: string) {
@@ -335,10 +360,16 @@ function createTodoStore() {
     const [moved] = sorted.splice(fromIndex, 1);
     if (!moved) return;
     sorted.splice(toIndex, 0, moved);
+    const reordered: Array<{ id: string; order: number }> = [];
     sorted.forEach((item, index) => {
       const original = items.value.find((i) => i.id === item.id);
-      if (original) original.order = index;
+      if (original) {
+        original.order = index;
+        reordered.push({ id: item.id, order: index });
+      }
     });
+    persistLocal();
+    void todosApi.reorder(reordered);
   }
 
   function revealPrivacy() {
@@ -348,6 +379,7 @@ function createTodoStore() {
   async function setPrivacyMode(enabled: boolean) {
     privacyModeEnabled.value = enabled;
     await storageSet({ [SETTINGS_KEY]: { privacyMode: enabled } });
+    void settingsApi.set("todo.privacyMode", enabled);
   }
 
   function getImportanceLabel(importance: TodoImportance) {

@@ -1,6 +1,7 @@
-import { computed, ref, watch } from "vue";
+import { computed, ref } from "vue";
 
 import { storageGet, storageSet } from "@/services/storage";
+import { sites as sitesApi, isLoggedIn } from "@/services/sync";
 import type { AddSiteResult, SiteHistoryResult, SiteShortcut, UpdateSiteResult } from "@/types/sites";
 
 const ITEMS_KEY = "sites.items";
@@ -252,6 +253,22 @@ function createSitesStore() {
   const historyMessage = ref("输入站点名或域名，快速从浏览历史里添加。");
 
   async function initialize() {
+    const loggedIn = await isLoggedIn();
+
+    if (loggedIn) {
+      try {
+        const result = await sitesApi.list();
+        if (result.success && Array.isArray(result.data)) {
+          items.value = sanitizeStoredItems(result.data);
+          historyPermissionGranted.value = await refreshHistoryPermission();
+          isHydrated.value = true;
+          return;
+        }
+      } catch {
+        // fall through to local storage
+      }
+    }
+
     const stored = await storageGet<Record<string, unknown>>({
       [ITEMS_KEY]: null
     });
@@ -301,6 +318,12 @@ function createSitesStore() {
     }
   }
 
+  function persistLocal() {
+    if (!isHydrated.value) return;
+    const plain = items.value.map((item) => ({ ...item }));
+    void storageSet({ [ITEMS_KEY]: plain });
+  }
+
   function addSite(urlValue: string, preferredName?: string): AddSiteResult {
     const parsed = toHttpUrl(urlValue);
     if (!parsed) {
@@ -327,6 +350,8 @@ function createSitesStore() {
     };
 
     items.value = [...items.value, nextItem];
+    persistLocal();
+    void sitesApi.create(nextItem);
     return { ok: true, item: nextItem };
   }
 
@@ -359,6 +384,8 @@ function createSitesStore() {
     };
 
     items.value = items.value.map((item) => (item.id === id ? nextItem : item));
+    persistLocal();
+    void sitesApi.update(id, nextItem);
     return { ok: true, item: nextItem };
   }
 
@@ -366,6 +393,8 @@ function createSitesStore() {
     items.value = items.value
       .filter((item) => item.id !== id)
       .map((item, index) => ({ ...item, order: index }));
+    persistLocal();
+    void sitesApi.delete(id);
   }
 
   async function searchHistory(query: string) {
@@ -429,19 +458,6 @@ function createSitesStore() {
   const itemCount = computed(() => items.value.length);
   const canAddMore = computed(() => items.value.length < MAX_SITES);
   const historySupported = computed(() => canRequestHistoryPermission());
-
-  watch(
-    items,
-    (value) => {
-      if (!isHydrated.value) {
-        return;
-      }
-
-      const plain = value.map((item) => ({ ...item }));
-      void storageSet({ [ITEMS_KEY]: plain });
-    },
-    { deep: true }
-  );
 
   void initialize();
 

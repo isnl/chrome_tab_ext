@@ -1,0 +1,18 @@
+name = "fresh-tab-sync"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fresh-tab-sync"
+database_id = "43f5ec34-6943-4a85-b4a1-70be1ba6ecc7"
+
+[vars]
+ENVIRONMENT = "production"
+WECHAT_AUTH_URL = "https://ai.iiter.cn/auth/wechat"
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+# ALLOWED_EXTENSION_ID should be set via: wrangler secret put ALLOWED_EXTENSION_ID

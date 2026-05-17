@@ -1,6 +1,7 @@
 import { ref, watch } from "vue";
 
 import { storageGet, storageSet } from "@/services/storage";
+import { settings as settingsApi } from "@/services/sync";
 
 const STORAGE_KEY = "wallpaper";
 const PICSUM_BASE = "https://picsum.photos";
@@ -209,6 +210,7 @@ function createWallpaperStore() {
 
   watch(currentUrl, (url) => {
     void storageSet({ [STORAGE_KEY]: { currentUrl: url } satisfies WallpaperState });
+    void settingsApi.set("wallpaper.currentUrl", url);
   });
 
   return {
