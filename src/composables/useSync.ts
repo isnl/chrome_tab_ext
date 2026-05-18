@@ -1,6 +1,7 @@
 import { ref, readonly } from "vue";
 import * as api from "../services/sync";
 import type { SyncUser } from "../services/sync";
+import { useDashboard } from "./useDashboard";
 
 const isLoggedIn = ref(false);
 const user = ref<SyncUser | null>(null);
@@ -23,6 +24,7 @@ async function login(code: string): Promise<boolean> {
   if (result) {
     isLoggedIn.value = true;
     user.value = result.user;
+    await useDashboard().syncFromRemote();
     return true;
   }
   return false;

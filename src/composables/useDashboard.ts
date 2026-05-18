@@ -149,6 +149,20 @@ function createDashboardStore() {
   const isHydrated = ref(false);
   let isSyncing = false;
   let hydrationPromise: Promise<void> | null = null;
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastSavedSnapshot = "";
+
+  function takeSnapshot() {
+    const payload = widgets.value.map((item) => ({
+      id: item.id,
+      size: item.size,
+      order: item.order,
+      col: item.col,
+      row: item.row,
+      visible: widgetVisibility.value[item.id] !== false
+    }));
+    lastSavedSnapshot = JSON.stringify(payload);
+  }
 
   async function initialize() {
     if (hydrationPromise) {
@@ -176,8 +190,9 @@ function createDashboardStore() {
               visMap[item.id] = item.visible !== false;
             }
             widgetVisibility.value = sanitizeVisibility(visMap);
-            isSyncing = false;
             isHydrated.value = true;
+            takeSnapshot();
+            isSyncing = false;
             return;
           }
         } catch {
@@ -191,12 +206,21 @@ function createDashboardStore() {
       });
 
       const raw = stored[STORAGE_KEY];
+      isSyncing = true;
       widgets.value = sanitizeLayout(raw);
       widgetVisibility.value = sanitizeVisibility(stored[VISIBILITY_STORAGE_KEY]);
       isHydrated.value = true;
+      takeSnapshot();
+      isSyncing = false;
     })();
 
     return hydrationPromise;
+  }
+
+  async function syncFromRemote() {
+    hydrationPromise = null;
+    isHydrated.value = false;
+    await initialize();
   }
 
   function setWidgetSize(id: DashboardWidgetId, size: WidgetSize) {
@@ -244,17 +268,23 @@ function createDashboardStore() {
     widgets.value = sorted.map((item, index) => ({ ...item, order: index }));
   }
 
-  async function saveDashboardToApi() {
-    if (!(await isLoggedIn())) return;
-    const payload = widgets.value.map((item) => ({
-      id: item.id,
-      size: item.size,
-      order: item.order,
-      col: item.col,
-      row: item.row,
-      visible: widgetVisibility.value[item.id] !== false
-    }));
-    void dashboardApi.save(payload);
+  function saveDashboardToApi() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      if (!(await isLoggedIn())) return;
+      const payload = widgets.value.map((item) => ({
+        id: item.id,
+        size: item.size,
+        order: item.order,
+        col: item.col,
+        row: item.row,
+        visible: widgetVisibility.value[item.id] !== false
+      }));
+      const snapshot = JSON.stringify(payload);
+      if (snapshot === lastSavedSnapshot) return;
+      lastSavedSnapshot = snapshot;
+      void dashboardApi.save(payload);
+    }, 300);
   }
 
   watch(
@@ -297,6 +327,7 @@ function createDashboardStore() {
     visibleWidgets,
     isHydrated,
     initialize,
+    syncFromRemote,
     setWidgetSize,
     moveWidget,
     cycleWidgetSize,
