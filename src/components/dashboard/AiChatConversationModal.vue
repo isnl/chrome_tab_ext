@@ -277,18 +277,6 @@ function toggleBookmarkContextPanel() {
   }
 }
 
-function setBookmarkScope(scope: "all" | "custom") {
-  let nextFolderIds = selectedBookmarkFolderIds.value;
-
-  if (scope === "custom" && bookmarkSearchScope.value !== "custom" && !selectedBookmarkFolderIds.value.length) {
-    nextFolderIds = bookmarkFolders.value.map((folder) => folder.id);
-    aiChat.setBookmarkFolderIds(nextFolderIds);
-  }
-
-  aiChat.setBookmarkSearchScope(scope);
-  updateBookmarkStats(scope, nextFolderIds);
-}
-
 function toggleBookmarkFolder(folderId: string) {
   const currentIds =
     bookmarkSearchScope.value === "custom"
@@ -660,51 +648,48 @@ onBeforeUnmount(() => {
                   >
                     <section v-if="bookmarkContextOpen && bookmarkSearchEnabled" class="ai-bookmark-panel">
                       <header class="ai-bookmark-panel__header">
-                        <div>
-                          <p class="ai-bookmark-panel__title">书签上下文</p>
+                        <div class="ai-bookmark-panel__heading">
+                          <div class="ai-bookmark-panel__title-row">
+                            <p class="ai-bookmark-panel__title">书签上下文</p>
+
+                            <div class="ai-bookmark-panel__actions" aria-label="书签文件夹选择操作">
+                              <button
+                                class="ai-bookmark-panel__action"
+                                type="button"
+                                :disabled="!bookmarkFolders.length"
+                                @click="selectAllBookmarkFolders"
+                              >
+                                全选
+                              </button>
+                              <button
+                                class="ai-bookmark-panel__action"
+                                type="button"
+                                :disabled="!bookmarkFolders.length"
+                                @click="invertBookmarkFolderSelection"
+                              >
+                                反选
+                              </button>
+                            </div>
+                          </div>
+
                           <p class="ai-bookmark-panel__meta">{{ bookmarkContextDetail }}</p>
                         </div>
 
-                        <span v-if="bookmarkInventoryLoading" class="ai-bookmark-panel__loading"></span>
+                        <div class="ai-bookmark-panel__header-tools">
+                          <span v-if="bookmarkInventoryLoading" class="ai-bookmark-panel__loading"></span>
+                          <button
+                            class="ai-bookmark-panel__collapse"
+                            type="button"
+                            aria-label="收起书签选择"
+                            title="收起书签选择"
+                            @click="toggleBookmarkContextPanel"
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="m18 15-6-6-6 6"/>
+                            </svg>
+                          </button>
+                        </div>
                       </header>
-
-                      <div class="ai-bookmark-panel__modes">
-                        <button
-                          class="ai-bookmark-panel__mode"
-                          :class="{ 'ai-bookmark-panel__mode--active': bookmarkSearchScope === 'all' }"
-                          type="button"
-                          @click="setBookmarkScope('all')"
-                        >
-                          全部文件夹
-                        </button>
-                        <button
-                          class="ai-bookmark-panel__mode"
-                          :class="{ 'ai-bookmark-panel__mode--active': bookmarkSearchScope === 'custom' }"
-                          type="button"
-                          @click="setBookmarkScope('custom')"
-                        >
-                          自选文件夹
-                        </button>
-                      </div>
-
-                      <div class="ai-bookmark-panel__actions">
-                        <button
-                          class="ai-bookmark-panel__action"
-                          type="button"
-                          :disabled="!bookmarkFolders.length"
-                          @click="selectAllBookmarkFolders"
-                        >
-                          全选
-                        </button>
-                        <button
-                          class="ai-bookmark-panel__action"
-                          type="button"
-                          :disabled="!bookmarkFolders.length"
-                          @click="invertBookmarkFolderSelection"
-                        >
-                          反选
-                        </button>
-                      </div>
 
                       <label class="ai-bookmark-panel__search">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round">
@@ -1502,19 +1487,32 @@ onBeforeUnmount(() => {
 .ai-bookmark-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
+  border-radius: 12px;
   background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(240, 253, 250, 0.72));
-  padding: 10px;
+  padding: 8px;
 }
 
 .ai-bookmark-panel__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+}
+
+.ai-bookmark-panel__heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.ai-bookmark-panel__title-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .ai-bookmark-panel__title {
@@ -1531,6 +1529,16 @@ onBeforeUnmount(() => {
   font-size: 11px;
   font-weight: 650;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-bookmark-panel__header-tools {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
 }
 
 .ai-bookmark-panel__loading {
@@ -1543,45 +1551,23 @@ onBeforeUnmount(() => {
   animation: ai-settings-spin 0.7s linear infinite;
 }
 
-.ai-bookmark-panel__modes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
-.ai-bookmark-panel__mode {
-  height: 30px;
-  border: 1px solid rgba(15, 23, 42, 0.07);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.68);
-  color: #475569;
-  font-size: 11px;
-  font-weight: 760;
-  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
-}
-
-.ai-bookmark-panel__mode--active {
-  border-color: rgba(20, 184, 166, 0.24);
-  background: rgba(20, 184, 166, 0.1);
-  color: #0f766e;
-}
-
 .ai-bookmark-panel__actions {
   display: flex;
-  gap: 6px;
+  flex: 0 0 auto;
+  gap: 5px;
 }
 
 .ai-bookmark-panel__action {
   display: inline-flex;
-  height: 28px;
+  height: 24px;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(37, 99, 235, 0.12);
-  border-radius: 10px;
+  border-radius: 8px;
   background: rgba(239, 246, 255, 0.72);
-  padding: 0 11px;
+  padding: 0 9px;
   color: #2563eb;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 760;
   transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
@@ -1597,13 +1583,33 @@ onBeforeUnmount(() => {
   background: rgba(241, 245, 249, 0.72);
 }
 
+.ai-bookmark-panel__collapse {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #64748b;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.ai-bookmark-panel__collapse:hover {
+  border-color: rgba(37, 99, 235, 0.2);
+  background: rgba(239, 246, 255, 0.92);
+  color: #2563eb;
+}
+
 .ai-bookmark-panel__search {
   display: flex;
-  height: 32px;
+  height: 30px;
   align-items: center;
   gap: 7px;
   border: 1px solid rgba(15, 23, 42, 0.07);
-  border-radius: 11px;
+  border-radius: 9px;
   background: rgba(255, 255, 255, 0.78);
   padding: 0 9px;
   color: #94a3b8;
@@ -1626,7 +1632,7 @@ onBeforeUnmount(() => {
 
 .ai-bookmark-panel__folders {
   display: flex;
-  max-height: 154px;
+  max-height: 196px;
   min-height: 58px;
   flex-direction: column;
   gap: 4px;

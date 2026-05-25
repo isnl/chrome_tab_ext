@@ -1,60 +1,22 @@
-const STORAGE_PREFIX = "fresh-new-tab:";
-
-type StorageKeys = string | string[] | Record<string, unknown> | null | undefined;
+// In-memory fallback for non-extension environments (dev). Only used for auth keys.
+const memoryStore: Record<string, unknown> = {};
 
 function hasChromeStorage() {
   return Boolean(globalThis.chrome?.storage?.local);
 }
 
-function readLocalStorageValue(key: string) {
-  const rawValue = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
-  if (rawValue === null) {
-    return undefined;
-  }
-
-  try {
-    return JSON.parse(rawValue);
-  } catch {
-    return rawValue;
-  }
-}
-
-function fallbackGet(keys: StorageKeys) {
-  if (keys == null) {
-    const values: Record<string, unknown> = {};
-
-    for (let index = 0; index < localStorage.length; index += 1) {
-      const localKey = localStorage.key(index);
-      if (!localKey || !localKey.startsWith(STORAGE_PREFIX)) {
-        continue;
-      }
-
-      const storageKey = localKey.slice(STORAGE_PREFIX.length);
-      values[storageKey] = readLocalStorageValue(storageKey);
-    }
-
-    return values;
-  }
-
-  if (typeof keys === "string") {
-    return { [keys]: readLocalStorageValue(keys) };
-  }
-
-  if (Array.isArray(keys)) {
-    return Object.fromEntries(keys.map((key) => [key, readLocalStorageValue(key)]));
-  }
-
-  return Object.fromEntries(
-    Object.entries(keys).map(([key, fallbackValue]) => {
-      const storedValue = readLocalStorageValue(key);
-      return [key, storedValue === undefined ? fallbackValue : storedValue];
-    })
-  );
-}
+type StorageKeys = string | string[] | Record<string, unknown> | null | undefined;
 
 export function storageGet<T = Record<string, unknown>>(keys: StorageKeys) {
   if (!hasChromeStorage()) {
-    return Promise.resolve(fallbackGet(keys) as T);
+    if (keys == null) return Promise.resolve(memoryStore as T);
+    if (typeof keys === "string") return Promise.resolve({ [keys]: memoryStore[keys] } as T);
+    if (Array.isArray(keys)) return Promise.resolve(Object.fromEntries(keys.map((k) => [k, memoryStore[k]])) as T);
+    return Promise.resolve(
+      Object.fromEntries(
+        Object.entries(keys).map(([k, fallback]) => [k, k in memoryStore ? memoryStore[k] : fallback])
+      ) as T
+    );
   }
 
   return new Promise<T>((resolve, reject) => {
@@ -63,7 +25,6 @@ export function storageGet<T = Record<string, unknown>>(keys: StorageKeys) {
         reject(new Error(chrome.runtime.lastError.message));
         return;
       }
-
       resolve(result as T);
     });
   });
@@ -71,9 +32,7 @@ export function storageGet<T = Record<string, unknown>>(keys: StorageKeys) {
 
 export function storageSet(items: Record<string, unknown>) {
   if (!hasChromeStorage()) {
-    Object.entries(items).forEach(([key, value]) => {
-      localStorage.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify(value));
-    });
+    Object.assign(memoryStore, items);
     return Promise.resolve();
   }
 
@@ -83,7 +42,6 @@ export function storageSet(items: Record<string, unknown>) {
         reject(new Error(chrome.runtime.lastError.message));
         return;
       }
-
       resolve();
     });
   });

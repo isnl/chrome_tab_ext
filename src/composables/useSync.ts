@@ -1,9 +1,9 @@
 import { ref, readonly } from "vue";
 import * as api from "../services/sync";
 import type { SyncUser } from "../services/sync";
-import { useDashboard } from "./useDashboard";
 
 const isLoggedIn = ref(false);
+const isOnline = ref(navigator.onLine);
 const user = ref<SyncUser | null>(null);
 
 let initialized = false;
@@ -11,6 +11,9 @@ let initialized = false;
 async function initialize() {
   if (initialized) return;
   initialized = true;
+
+  window.addEventListener("online", () => { isOnline.value = true; });
+  window.addEventListener("offline", () => { isOnline.value = false; });
 
   const loggedIn = await api.isLoggedIn();
   isLoggedIn.value = loggedIn;
@@ -24,7 +27,6 @@ async function login(code: string): Promise<boolean> {
   if (result) {
     isLoggedIn.value = true;
     user.value = result.user;
-    await useDashboard().syncFromRemote();
     return true;
   }
   return false;
@@ -56,6 +58,7 @@ export function useSync() {
 
   return {
     isLoggedIn: readonly(isLoggedIn),
+    isOnline: readonly(isOnline),
     user: readonly(user),
     login,
     logout,
